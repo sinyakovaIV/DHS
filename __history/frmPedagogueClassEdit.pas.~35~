@@ -1,0 +1,407 @@
+unit frmPedagogueClassEdit;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfPedagogueClassEdit = class(TForm)
+    Panel2: TPanel;
+    lvChildList: TListView;
+    Panel5: TPanel;
+    bClose: TButton;
+    Panel3: TPanel;
+    lvClassList: TListView;
+    Panel1: TPanel;
+    bEditRecord: TButton;
+    bDeleteRecord: TButton;
+    Panel8: TPanel;
+    GroupBox1: TGroupBox;
+    chbExpelled: TCheckBox;
+    Splitter1: TSplitter;
+    Panel7: TPanel;
+    rgChooseMode: TRadioGroup;
+    cmbChoose: TComboBox;
+    bInGroup: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure rgChooseModeClick(Sender: TObject);
+    procedure bEditRecordClick(Sender: TObject);
+    procedure bInGroupClick(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure cmbChooseChange(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure bDeleteRecordClick(Sender: TObject);
+  private
+    YearBirth: TResultTable;
+    ChildListForClassMember: TResultTable;
+    ClassMembersList: TResultTable;
+    AcademicYear: TResultTable;
+
+    FIDEducationProgram: integer;
+    FIDPedagogue: integer;
+    FIDAcademicYear: integer;
+    FStrEducationProgram: string;
+    FStrPedagogue: string;
+    FStrAcademicYear: string;
+
+    procedure SetIDEducationProgram(const Value: integer);
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+    procedure SetStrEducationProgram(const Value: string);
+    procedure SetStrPedagogue(const Value: string);
+    procedure SetStrAcademicYear(const Value: string);
+    procedure ShowChildListForClassMember;
+    procedure ShowClassMembersList;
+
+  public
+    property IDEducationProgram: integer read FIDEducationProgram
+      write SetIDEducationProgram;
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+    property StrEducationProgram: string read FStrEducationProgram
+      write SetStrEducationProgram;
+    property StrPedagogue: string read FStrPedagogue write SetStrPedagogue;
+    property StrAcademicYear: string read FStrAcademicYear
+      write SetStrAcademicYear;
+  end;
+
+var
+  fPedagogueClassEdit: TfPedagogueClassEdit;
+
+implementation
+
+{$R *.dfm}
+
+uses frmPedagogueClassEditMini;
+
+procedure TfPedagogueClassEdit.bDeleteRecordClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  s := 0;
+  for i := 0 to lvClassList.Items.Count - 1 do
+  begin
+    if lvClassList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для удаления!');
+    Exit;
+  end;
+
+  for i := 0 to lvClassList.Items.Count - 1 do
+  begin
+    if lvClassList.Items[i].Checked then
+      if (Kernel.DeleteGroup([ClassMembersList[i].ValueByName
+        ('ID_OUT_LEARNING_GROUP')]) and Kernel.DeleteGroupMember
+        ([ClassMembersList[i].ValueByName('ID_OUT_LEARNING_GROUP_MEMBER')]))
+      then
+      begin
+        ShowMessage('Запись удалена!');
+        // МОЖЕТ НЕ СТОИТ ВЫВОДИТЬ ЭТО СООБЩЕНИЕ!!???
+      end
+      else
+        ShowMessage('Ошибка при удалении записи!');
+  end;
+  ShowChildListForClassMember;
+  ShowClassMembersList;
+end;
+
+procedure TfPedagogueClassEdit.bEditRecordClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  s := 0;
+  for i := 0 to lvClassList.Items.Count - 1 do
+  begin
+    if lvClassList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для редактирования!');
+    Exit;
+  end;
+
+  for i := 0 to lvClassList.Items.Count - 1 do
+  begin
+    if lvClassList.Items[i].Checked then
+    begin
+      fPedagogueClassEditMini.NewRecord := false;
+      fPedagogueClassEditMini.IDLearningGroup := ClassMembersList[i]
+        .ValueByName('ID_OUT_LEARNING_GROUP');
+      fPedagogueClassEditMini.IDLearningLevel := ClassMembersList[i]
+        .ValueByName('ID_OUT_LEARNING_LEVEL');
+      fPedagogueClassEditMini.WeekAmountHours := ClassMembersList[i]
+        .ValueByName('WEEK_AMOUNT_HOURS');
+      fPedagogueClassEditMini.IDLearningGroupMember := ClassMembersList[i]
+        .ValueByName('ID_OUT_LEARNING_GROUP_MEMBER');
+      fPedagogueClassEditMini.IDOrderIn := ClassMembersList[i]
+        .ValueByName('ID_OUT_ORDER_IN');
+      if ClassMembersList[i].ValueStrByName('ID_OUT_ORDER_OUT') <> 'null' then
+        fPedagogueClassEditMini.IDOrderOut := ClassMembersList[i]
+          .ValueByName('ID_OUT_ORDER_OUT');
+      fPedagogueClassEditMini.IDLearningChild := ClassMembersList[i]
+        .ValueByName('ID_OUT_CHILD');
+      fPedagogueClassEditMini.StrSurnameNameChild := ChildListForClassMember[i]
+        .ValueByName('SURNAME_NAME');
+    end;
+
+  end;
+  if (not Assigned(fPedagogueClassEditMini)) then
+    fPedagogueClassEditMini := TfPedagogueClassEditMini.Create(Self);
+  fPedagogueClassEditMini.ShowModal;
+  if fPedagogueClassEditMini.ModalResult = mrOk then
+  begin
+    ShowChildListForClassMember;
+    ShowClassMembersList;
+  end;
+end;
+
+procedure TfPedagogueClassEdit.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfPedagogueClassEdit.bInGroupClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  s := 0;
+  for i := 0 to lvChildList.Items.Count - 1 do
+  begin
+    if lvChildList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для зачисления!');
+    Exit;
+  end;
+  for i := 0 to lvChildList.Items.Count - 1 do
+  begin
+    if lvChildList.Items[i].Checked then
+    begin
+      fPedagogueClassEditMini.IDLearningChild := ChildListForClassMember[i]
+        .ValueByName('ID_OUT_CHILD');
+      fPedagogueClassEditMini.StrSurnameNameChild := ChildListForClassMember[i]
+        .ValueByName('SURNAME_NAME');
+      fPedagogueClassEditMini.NewRecord := true;
+    end;
+  end;
+
+  if (not Assigned(fPedagogueClassEditMini)) then
+    fPedagogueClassEditMini := TfPedagogueClassEditMini.Create(Self);
+  fPedagogueClassEditMini.ShowModal;
+  if fPedagogueClassEditMini.ModalResult = mrOk then
+  begin
+    ShowChildListForClassMember;
+    ShowClassMembersList;
+  end;
+
+  // for i := 0 to lvChildList.Items.Count - 1 do
+  // begin
+  // if lvChildList.Items[i].Checked then
+  // begin
+  // if Kernel.SaveLearningGroupMembers([-1, IDLearningGroup,
+  // ChildListForGroupMember[i].ValueByName('ID_OUT_CHILD'), null,
+  // InOrderList[cmbOrderIn.ItemIndex].ValueByName('ID_OUT'), null]) then
+  // begin
+  // ShowMessage('Сохранение выполнено!');
+  // end
+  // else
+  // ShowMessage('Ошибка при сохранении!');
+  // end;
+  // end;
+  // ShowGroupMembersList;
+end;
+
+procedure TfPedagogueClassEdit.cmbChooseChange(Sender: TObject);
+begin
+  ShowChildListForClassMember;
+end;
+
+procedure TfPedagogueClassEdit.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+  ModalResult := mrOk;
+end;
+
+procedure TfPedagogueClassEdit.FormCreate(Sender: TObject);
+begin
+  YearBirth := nil;
+  ChildListForClassMember := nil;
+  ClassMembersList := nil;
+  AcademicYear := nil;
+
+end;
+
+procedure TfPedagogueClassEdit.FormDestroy(Sender: TObject);
+begin
+  if Assigned(YearBirth) then
+    FreeAndNil(YearBirth);
+  if Assigned(ChildListForClassMember) then
+    FreeAndNil(ChildListForClassMember);
+  if Assigned(ClassMembersList) then
+    FreeAndNil(ClassMembersList);
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  // if Assigned(InOrderList) then
+
+end;
+
+procedure TfPedagogueClassEdit.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  fPedagogueClassEditMini.IDEducationProgram := IDEducationProgram;
+  fPedagogueClassEditMini.IDPedagogue := IDPedagogue;
+  fPedagogueClassEditMini.IDAcademicYear := IDAcademicYear;
+
+  fPedagogueClassEditMini.StrEducationProgram := StrEducationProgram;
+  fPedagogueClassEditMini.StrPedagogue := StrPedagogue;
+  fPedagogueClassEditMini.StrAcademicYear := StrAcademicYear;
+
+  Panel1.Caption := StrPedagogue + ', ' + StrAcademicYear + ' уч/год, "' +
+    StrEducationProgram + '"';
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  with cmbChoose do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to AcademicYear.Count - 1 do
+      Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+    DropDownCount := AcademicYear.Count + 1;
+    for i := 0 to AcademicYear.Count - 1 do
+      if AcademicYear[i].ValueStrByName('NAME') = StrAcademicYear then
+        cmbChoose.ItemIndex := i + 1;
+  end;
+  ShowChildListForClassMember;
+  ShowClassMembersList;
+end;
+
+procedure TfPedagogueClassEdit.rgChooseModeClick(Sender: TObject);
+var
+  i: integer;
+begin
+  if rgChooseMode.ItemIndex = 0 then
+  begin
+
+    // этот кусок дублируется в FormShow
+    if not Assigned(AcademicYear) then
+      AcademicYear := Kernel.GetAcademicYear;
+    with cmbChoose do
+    begin
+      Clear;
+      Items.Add('Все');
+      for i := 0 to AcademicYear.Count - 1 do
+        Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+      DropDownCount := AcademicYear.Count + 1;
+      for i := 0 to AcademicYear.Count - 1 do
+        if AcademicYear[i].ValueStrByName('NAME') = StrAcademicYear then
+          cmbChoose.ItemIndex := i + 1;
+    end;
+
+  end
+  else
+  begin
+    if not Assigned(YearBirth) then
+      YearBirth := Kernel.GetYearBirth;
+    with cmbChoose do
+    begin
+      Clear;
+      for i := 0 to YearBirth.Count - 1 do
+        Items.Add(YearBirth[i].ValueStrByName('YearBirth'));
+      DropDownCount := YearBirth.Count + 1;
+      ItemIndex := 0;
+    end;
+  end;
+  ShowChildListForClassMember;
+end;
+
+procedure TfPedagogueClassEdit.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfPedagogueClassEdit.SetIDEducationProgram(const Value: integer);
+begin
+  if FIDEducationProgram <> Value then
+    FIDEducationProgram := Value;
+end;
+
+procedure TfPedagogueClassEdit.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfPedagogueClassEdit.SetStrAcademicYear(const Value: string);
+begin
+  if FStrAcademicYear <> Value then
+    FStrAcademicYear := Value;
+end;
+
+procedure TfPedagogueClassEdit.SetStrEducationProgram(const Value: string);
+begin
+  if FStrEducationProgram <> Value then
+    FStrEducationProgram := Value;
+end;
+
+procedure TfPedagogueClassEdit.SetStrPedagogue(const Value: string);
+begin
+  if FStrPedagogue <> Value then
+    FStrPedagogue := Value;
+end;
+
+procedure TfPedagogueClassEdit.ShowChildListForClassMember;
+var
+  in_id_academic_year, year_birth: integer;
+begin
+  if rgChooseMode.ItemIndex = 0 then
+  // выбрать сиписок по учебному году
+  begin
+    in_id_academic_year := AcademicYear[cmbChoose.ItemIndex - 1]
+      .ValueByName('ID');
+    if Assigned(ChildListForClassMember) then
+      FreeAndNil(ChildListForClassMember);
+    ChildListForClassMember := Kernel.GetChildListForClassMemberByAcademicYear
+      (IDEducationProgram, IDPedagogue, in_id_academic_year);
+  end
+  else
+  // выбрать список по дате рождения
+  begin
+    if YearBirth.Count > 0 then
+      year_birth := StrToInt(cmbChoose.Text);
+    if Assigned(ChildListForClassMember) then
+      FreeAndNil(ChildListForClassMember);
+    ChildListForClassMember := Kernel.GetChildListForClassMemberByYearBirth
+      (year_birth);
+  end;
+
+  Kernel.GetLVChildListClassMemberForEdit(lvChildList, ChildListForClassMember);
+  if lvChildList.Items.Count > 0 then
+    lvChildList.ItemIndex := 0;
+end;
+
+procedure TfPedagogueClassEdit.ShowClassMembersList;
+begin
+  if Assigned(ClassMembersList) then
+    FreeAndNil(ClassMembersList);
+  ClassMembersList := Kernel.GetChildListClassMember(IDEducationProgram,
+    IDPedagogue, IDAcademicYear);
+  Kernel.GetLVChildListClassMemberForEdit(lvClassList, ClassMembersList);
+  if lvClassList.Items.Count > 0 then
+    lvClassList.ItemIndex := 0;
+end;
+
+end.

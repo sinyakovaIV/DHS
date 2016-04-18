@@ -1,0 +1,58 @@
+unit frmGroupList;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls;
+
+type
+  TfGroupList = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    cmbChooseAcademicYear: TComboBox;
+    cmbChooseAducationProgram: TComboBox;
+    cmbChoosePedagogue: TComboBox;
+    cmbChooseStatus: TComboBox;
+    lvLearningGroup: TListView;
+    Panel1: TPanel;
+    Label5: TLabel;
+    cmbName: TComboBox;
+    Label6: TLabel;
+    cmbLearningLevel: TComboBox;
+    Label7: TLabel;
+    cmbAducationProgram: TComboBox;
+    Label8: TLabel;
+    cmbHoursAmount: TComboBox;
+    Label9: TLabel;
+    cmbPedagogue: TComboBox;
+    Label10: TLabel;
+    cmbAcademicYear: TComboBox;
+    Label11: TLabel;
+    cmbStatus: TComboBox;
+    Button1: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    procedure Button3Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  fGroupList: TfGroupList;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfGroupList.Button3Click(Sender: TObject);
+begin
+  Close;
+end;
+
+end.

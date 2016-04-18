@@ -1,0 +1,16 @@
+object fTrip: TfTrip
+  Left = 0
+  Top = 0
+  Caption = 'fTrip'
+  ClientHeight = 210
+  ClientWidth = 455
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  PixelsPerInch = 106
+  TextHeight = 14
+end

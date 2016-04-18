@@ -1,0 +1,119 @@
+unit frmNonWorkingDays;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfNonWorkingDays = class(TForm)
+    bClose: TButton;
+    Panel1: TPanel;
+    LVNonWorkingDays: TListView;
+    cmbAcademicYear: TComboBox;
+    Label1: TLabel;
+    bAdd: TButton;
+    bDelete: TButton;
+    dtpWirkOffDay: TDateTimePicker;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure bAddClick(Sender: TObject);
+    procedure bDeleteClick(Sender: TObject);
+    procedure LVNonWorkingDaysSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure cmbAcademicYearChange(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    NonWorkingList: TResultTable;
+    FIDAcademicYear: integer;
+    IDNonWorkDay: integer;
+    procedure ShowNonWorkDayList;
+    procedure SetIDAcademicYear(const Value: integer);
+  public
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fNonWorkingDays: TfNonWorkingDays;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfNonWorkingDays.bAddClick(Sender: TObject);
+begin
+  Kernel.SaveNonWorkDay([IDAcademicYear, DateToStr(dtpWirkOffDay.Date)]);
+  ShowNonWorkDayList;
+end;
+
+procedure TfNonWorkingDays.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfNonWorkingDays.bDeleteClick(Sender: TObject);
+begin
+  Kernel.DeleteNonWorkDay([IDNonWorkDay]);
+  ShowNonWorkDayList;
+end;
+
+procedure TfNonWorkingDays.cmbAcademicYearChange(Sender: TObject);
+begin
+  IDAcademicYear := AcademicYear[cmbAcademicYear.ItemIndex].ValueByName('ID');
+  ShowNonWorkDayList;
+end;
+
+procedure TfNonWorkingDays.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  NonWorkingList := nil;
+end;
+
+procedure TfNonWorkingDays.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(NonWorkingList) then
+    FreeAndNil(NonWorkingList);
+end;
+
+procedure TfNonWorkingDays.FormShow(Sender: TObject);
+begin
+  dtpWirkOffDay.Date := Date;
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+  ShowNonWorkDayList;
+end;
+
+procedure TfNonWorkingDays.LVNonWorkingDaysSelectItem(Sender: TObject;
+  Item: TListItem; Selected: Boolean);
+begin
+  IDNonWorkDay := NonWorkingList[Item.Index].ValueByName('ID');
+end;
+
+procedure TfNonWorkingDays.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfNonWorkingDays.ShowNonWorkDayList;
+begin
+  if Assigned(NonWorkingList) then
+    FreeAndNil(NonWorkingList);
+  NonWorkingList := Kernel.GetNonWorkDay(IDAcademicYear);
+  // выбираю данные из энтой процедуры, аналогично списку класса педагога
+  Kernel.GetLVNonWorkDay(LVNonWorkingDays, NonWorkingList);
+  if LVNonWorkingDays.Items.Count > 0 then
+    LVNonWorkingDays.ItemIndex := 0;
+end;
+
+end.

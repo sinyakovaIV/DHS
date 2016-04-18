@@ -1,0 +1,304 @@
+unit frmGroupComposition;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel,
+  Winapi.ActiveX, ComObj, Vcl.OleServer;
+
+type
+  TfGroupComposition = class(TForm)
+    Panel1: TPanel;
+    Label3: TLabel;
+    Label1: TLabel;
+    cmbPedagogue: TComboBox;
+    cmbAcademicYear: TComboBox;
+    DateTimePicker1: TDateTimePicker;
+    Label4: TLabel;
+    lvGroups: TListView;
+    lvGroupMembers: TListView;
+    bExportOneGroup: TButton;
+    bExportAllGroup: TButton;
+    Memo1: TMemo;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure cmbPedagogueChange(Sender: TObject);
+    procedure lvGroupsSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure bExportOneGroupClick(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    GroupNames: TResultTable;
+    GroupMembers: TResultTable;
+    FIDPedagogue: integer;
+    FIDAcademicYear: integer;
+    IDLearningGroup: integer;
+    StrGroupName: string;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+    function CheckExcelInstalled(AValue: String): Boolean;
+    function CheckExcelRun(AValue: String; var ADest: Variant): Boolean;
+    procedure ShowGroups;
+    procedure ShowGroupMember;
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fGroupComposition: TfGroupComposition;
+
+implementation
+
+{$R *.dfm}
+{ TfGroupComposition }
+
+procedure TfGroupComposition.bExportOneGroupClick(Sender: TObject);
+var
+  ExcelFileName, PedSurname, CurAcademicYear, sline: string;
+  ExcelApp, Sheet, WorkBook: Variant;
+  // Memo: TMemo;
+  i: integer;
+begin
+  if not CheckExcelInstalled('Excel.Application') then
+    Application.MessageBox(PChar('Необходимо установить Microsoft Excel.'),
+      'Ошибка', MB_ICONERROR);
+  try
+    if not CheckExcelRun('Excel.Application', ExcelApp) then
+      ExcelApp := CreateOleObject('Excel.Application');
+    ExcelApp.Visible := false;
+    ExcelApp.Application.EnableEvents := false;
+
+    ExcelApp.SheetsInNewWorkbook := 1;
+    WorkBook := ExcelApp.Workbooks.Add;
+    Sheet := ExcelApp.Workbooks[1].WorkSheets[1];
+    // ExcelApp.Workbooks[1].WorkSheets[1].Name := 'bh';
+
+    PedSurname := ' ' + PedagogueSurnameNP[cmbPedagogue.ItemIndex]
+      .ValueStrByName('SURNAMENP');
+    CurAcademicYear := AcademicYear[cmbAcademicYear.ItemIndex]
+      .ValueStrByName('NAME');
+    // Колонтитулы
+    Sheet.PageSetup.CenterHeader :=
+      '&14ДХС "Надежда"                                         Педагог: &B ' +
+      PedSurname + #13 + '&BКомплектование на &B' + CurAcademicYear +
+      '&B учебный год          ';
+//    Sheet.PageSetup.CenterFooter :=
+//      '&10Дата формирования отчета о комплектовании групп: &14 &B' +
+//      DateToStr(DateTimePicker1.Date) + '&B  _____________ Подпись';
+
+// Нумерация страниц:
+Sheet.PageSetup.CenterFooter := 'Стр. &С из &К';
+
+    // отображение листа в виде "разметка страницы"
+    // обещанные ни xlPageLayoutView ни xlPageBreakPreview не работают
+    // константу '3' выудила поредством записи макроса в Excel'е
+    ExcelApp.ActiveWindow.View := 3;
+
+    // Отступы
+    Sheet.PageSetup.TopMargin := 70;
+
+    ExcelApp.Workbooks[1].WorkSheets[1].Cells[1, 1] := 'По группам / учащимся';
+
+    // mem := TMemo.Create(Self) ;
+    // mem := TMemo.Create(loginform) ;
+    // mem.Visible := false;
+    // mem.Parent := loginform;
+    // mem.Clear; // видимо родитель был чем-то забит
+    // mem.lines.Add('');
+    Memo1.Lines.Add('');
+    sline := ' &14 &B' + StrGroupName + '&B';// Название группы
+    sline := 'большой шрифт &14 &B' + StrGroupName + '&B большой шрифт';
+    Memo1.Lines.Add(sline);
+
+    sline := '№' + #9 + 'Фамилия, имя учащегося' + #9 + 'Дата зачисления' + #9 +
+      'Дата отчисления';
+//    Memo1.Lines.Add('');
+    Memo1.Lines.Add(sline);
+
+    for i := 0 to GroupMembers.Count - 1 do
+    begin
+      sline := '';
+      sline := IntToStr(i + 1) + #9 + GroupMembers[i].ValueStrByName
+        ('SURNAME_NAME') + #9 + GroupMembers[i].ValueStrByName('DATE_IN') + #9 +
+        GroupMembers[i].ValueStrByName('DATE_OUT');
+      // mem.Lines.Add(sline);
+      Memo1.Lines.Add(sline);
+    end;
+
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[1].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[2].ColumnWidth := 25;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[3].ColumnWidth := 16;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[4].ColumnWidth := 16;
+//    ExcelApp.Workbooks[1].WorkSheets[1].Columns[5].ColumnWidth := 17;
+//    ExcelApp.Workbooks[1].WorkSheets[1].Columns[6].ColumnWidth := 9;
+
+    // ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Select;
+    // ExcelApp.Selection.Borders[xlInsideHorizontal].linestyle:=xlContinuous;
+
+    // ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Borders[xlInsideHorizontal].linestyle:=xlContinuous;
+    // ExcelApp.ActiveWorkBook.ActiveSheet.range['A2:F9'].Borders[xlInsideHorizontal].linestyle:=1;
+    // ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlInsideVertical].linestyle:=1 ;
+    // ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeBottom].linestyle:=1;
+    // ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeLeft].linestyle:=1;
+    // ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeRight].linestyle:=1;
+    // ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeTop].linestyle:=1;
+
+    // mem.SelectAll;
+    // mem.CopyToClipboard;
+    Memo1.SelectAll;
+    Memo1.CopyToClipboard;
+    ExcelApp.Workbooks[1].WorkSheets[1].Paste;
+    // mem.Destroy;
+
+    // формирую имя будущего файла
+    Delete(PedSurname, Length(PedSurname) - 4, 5);
+    ExcelFileName := CurAcademicYear + PedSurname + ' - Комплектование от ' +
+      FormatDateTime('dd mm', DateTimePicker1.Date);
+    // если файл уже существует и отказаться его перезаписать, то исключение!!!
+    // WorkBook.SaveAs(ExtractFilePath(Application.ExeName) + ExcelFileName);
+    WorkBook.SaveAs(ExtractFilePath(ParamStr(0)) + ExcelFileName);
+    // потом сделать проверку на сущ. файла и пусь пользователь
+    // решает, что с ним делать посредством диалога
+    // и еще, почему "Вместо Application.ExeName лучше использовать ParamStr(0)"
+
+    // ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Select;
+
+    ExcelApp.Visible := true;
+
+  finally
+    {      РАЗОБРАТЬСЯ:
+      // Если переменная не пустая, то...
+      if not VarIsEmpty(ExcelApp) then
+      begin
+      // ...отключаем диалог с вопросом сохранять ли файл при выходе или нет
+      ExcelApp.DisplayAlerts := false;
+      // Закрываем Excel
+      ExcelApp.Quit;
+      // Присваиваем неопределенный тип, освобождая при этом
+      // процесс excel.exe, чтобы он мог завершиться. Если этого не
+      // сделать, то процесс останется висеть в памяти.
+      ExcelApp := Unassigned;
+      WorkBook := Unassigned;
+      Sheet := Unassigned;
+      end;
+    }
+  end;
+
+end;
+
+function TfGroupComposition.CheckExcelInstalled(AValue: String): Boolean;
+var
+  FCLSID: TCLSID;
+begin
+  Result := (CLSIDFromProgID(PChar(AValue), FCLSID) = S_OK);
+end;
+
+function TfGroupComposition.CheckExcelRun(AValue: String;
+  var ADest: Variant): Boolean;
+begin
+  try
+    ADest := GetActiveOleObject(AValue);
+    Result := true;
+  except
+    Result := false;
+  end;
+end;
+
+procedure TfGroupComposition.cmbPedagogueChange(Sender: TObject);
+begin
+  IDPedagogue := PedagogueSurnameNP[cmbPedagogue.ItemIndex].ValueByName
+    ('ID_OUT');
+  ShowGroups;
+  ShowGroupMember;
+end;
+
+procedure TfGroupComposition.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+  GroupNames := nil;
+  GroupMembers := nil;
+end;
+
+procedure TfGroupComposition.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(GroupNames) then
+    FreeAndNil(GroupNames);
+  if Assigned(GroupMembers) then
+    FreeAndNil(GroupMembers);
+end;
+
+procedure TfGroupComposition.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', false);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+  ShowGroups;
+  ShowGroupMember;
+end;
+
+procedure TfGroupComposition.lvGroupsSelectItem(Sender: TObject;
+  Item: TListItem; Selected: Boolean);
+begin
+  IDLearningGroup := GroupNames[Item.Index].ValueByName('ID_OUT');
+  StrGroupName := GroupNames[Item.Index].ValueStrByName('L_G_NAME');
+  ShowGroupMember;
+end;
+
+procedure TfGroupComposition.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfGroupComposition.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfGroupComposition.ShowGroupMember;
+var
+  choose_mode, year_birth: integer;
+begin
+  choose_mode := 0;
+  // список будет формироваться из группы, а не по году рождения
+  year_birth := 0;
+  if Assigned(GroupMembers) then
+    FreeAndNil(GroupMembers);
+  GroupMembers := Kernel.GetChildListForGroupMember(choose_mode,
+    IDLearningGroup, year_birth);
+  Kernel.GetLVGroupMember(lvGroupMembers, GroupMembers);
+  if lvGroupMembers.Items.Count > 0 then
+    lvGroupMembers.ItemIndex := 0;
+end;
+
+procedure TfGroupComposition.ShowGroups;
+begin
+  if Assigned(GroupNames) then
+    FreeAndNil(GroupNames);
+  GroupNames := Kernel.GetLearningGroupName(0, IDPedagogue,
+    IDAcademicYear, 1, 0);
+  Kernel.GetLVGroupNames(lvGroups, GroupNames);
+  if GroupNames.Count > 0 then
+    lvGroups.ItemIndex := 0;
+end;
+
+end.

@@ -1,0 +1,560 @@
+unit frmLGroupMembers;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfLGroupMembers = class(TForm)
+    Panel3: TPanel;
+    lvGroupMemberList: TListView;
+    Panel1: TPanel;
+    Splitter1: TSplitter;
+    Panel2: TPanel;
+    lvChildList: TListView;
+    Panel4: TPanel;
+    bOutGroup: TButton;
+    cmbOrderOut: TComboBox;
+    Panel5: TPanel;
+    Panel6: TPanel;
+    bInGroup: TButton;
+    cmbOrderIn: TComboBox;
+    bClose: TButton;
+    Panel7: TPanel;
+    rgChooseMode: TRadioGroup;
+    cmbChoose: TComboBox;
+    bBackInGroup: TButton;
+    bDeleteRecord: TButton;
+    Panel8: TPanel;
+    GroupBox1: TGroupBox;
+    chbExpelled: TCheckBox;
+    eSearchFIO: TEdit;
+    Label3: TLabel;
+    cmbChooseAcademicYear: TComboBox;
+    Label1: TLabel;
+    procedure bCloseClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure rgChooseModeClick(Sender: TObject);
+    procedure cmbChooseChange(Sender: TObject);
+    procedure bInGroupClick(Sender: TObject);
+    procedure bOutGroupClick(Sender: TObject);
+    procedure bBackInGroupClick(Sender: TObject);
+    procedure bDeleteRecordClick(Sender: TObject);
+    procedure ShowChildListForGroupMemberByFIO(const inStatus, Mode: integer;
+      const aSearchText: string);
+    procedure lvChildListCustomDrawItem(Sender: TCustomListView;
+      Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure eSearchFIOChange(Sender: TObject);
+    procedure cmbChooseAcademicYearChange(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    YearBirth: TResultTable;
+    LearningGroupName: TResultTable;
+    ChildListForGroupMember: TResultTable;
+    InOrderList: TResultTable;
+    OutOrderList: TResultTable;
+    GroupMembersList: TResultTable;
+    AcademicYearForGroup: TResultTable;
+
+    FIDLearningGroup: integer;
+    FStrLearningGroup: string;
+    FIDEducationProgram: integer;
+    FIDPedagogue: integer;
+    FIDLearningForm: integer;
+    FIDStatus: integer;
+    FIDAcademicYear: integer;
+
+    procedure ShowChildListForGroupMember;
+    procedure ShowGroupMembersList;
+    procedure SetIDLearningGroup(const Value: integer);
+    procedure SetStrLearningGroup(const Value: string);
+    procedure SetIDEducationProgram(const Value: integer);
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDLearningForm(const Value: integer);
+    procedure SetIDStatus(const Value: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+
+  public
+    property IDLearningGroup: integer read FIDLearningGroup
+      write SetIDLearningGroup;
+    property StrLearningGroup: string read FStrLearningGroup
+      write SetStrLearningGroup;
+    property IDEducationProgram: integer read FIDEducationProgram
+      write SetIDEducationProgram;
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDLearningForm: integer read FIDLearningForm
+      write SetIDLearningForm;
+    property IDStatus: integer read FIDStatus write SetIDStatus;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fLGroupMembers: TfLGroupMembers;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfLGroupMembers.bBackInGroupClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  s := 0;
+  for i := 0 to lvGroupMemberList.Items.Count - 1 do
+  begin
+    if lvGroupMemberList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для редактирования!');
+    Exit;
+  end;
+  for i := 0 to lvGroupMemberList.Items.Count - 1 do
+  begin
+    if lvGroupMemberList.Items[i].Checked then
+    begin
+      //
+      if Kernel.SaveLearningGroupMembers([GroupMembersList[i].ValueByName('ID'),
+        IDLearningGroup, GroupMembersList[i].ValueByName('ID_OUT_CHILD'), 3,
+        GroupMembersList[i].ValueByName('ID_ORDER_IN'), null]) then
+      // TODO 1: убедиться что происходит сохранение статуса обуч-ся в группе, как преварительный или 1 обучается???
+      begin
+        ShowMessage('Сохранение выполнено!');
+      end
+      else
+        ShowMessage('Ошибка при сохранении!');
+    end;
+  end;
+  ShowGroupMembersList;
+end;
+
+procedure TfLGroupMembers.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfLGroupMembers.bDeleteRecordClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  // еще продумать проверку на наличие связанных с нагрузкой записей в расписании и/или журнале
+  s := 0;
+  for i := 0 to lvGroupMemberList.Items.Count - 1 do
+  begin
+    if lvGroupMemberList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для удаления!');
+    Exit;
+  end;
+  for i := 0 to lvGroupMemberList.Items.Count - 1 do
+  begin
+    if lvGroupMemberList.Items[i].Checked then
+      if Kernel.DeleteGroupMember([GroupMembersList[i].ValueByName('ID')]) then
+      begin
+        ShowMessage('Запись удалена!');
+        // МОЖЕТ НЕ СТОИТ ВЫВОДИТЬ ЭТО СООБЩЕНИЕ!!???
+      end
+      else
+        ShowMessage('Ошибка при удалении записи!');
+  end;
+  ShowChildListForGroupMember;
+  ShowGroupMembersList;
+end;
+
+procedure TfLGroupMembers.bInGroupClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  s := 0;
+  for i := 0 to lvChildList.Items.Count - 1 do
+  begin
+    if lvChildList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для зачисления!');
+    Exit;
+  end;
+  for i := 0 to lvChildList.Items.Count - 1 do
+  begin
+    if lvChildList.Items[i].Checked then
+    begin
+      if Kernel.SaveLearningGroupMembers([-1, IDLearningGroup,
+        ChildListForGroupMember[i].ValueByName('ID_OUT_CHILD'), 3,
+        InOrderList[cmbOrderIn.ItemIndex].ValueByName('ID_OUT'), null]) then
+      // TODO 1: убедиться, что присходит сохранение в группу со статусом 3 - предварительно зачислен в группу
+      begin
+        // ShowMessage('Сохранение выполнено!');
+      end
+      else
+        ShowMessage('Ошибка при сохранении!');
+    end;
+  end;
+  ShowGroupMembersList;
+end;
+
+procedure TfLGroupMembers.bOutGroupClick(Sender: TObject);
+var
+  i, s: integer;
+begin
+  s := 0;
+  for i := 0 to lvGroupMemberList.Items.Count - 1 do
+  begin
+    if lvGroupMemberList.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для редактирования!');
+    Exit;
+  end;
+  for i := 0 to lvGroupMemberList.Items.Count - 1 do
+  begin
+    if lvGroupMemberList.Items[i].Checked then
+    begin
+      //
+      if Kernel.SaveLearningGroupMembers([GroupMembersList[i].ValueByName('ID'),
+        IDLearningGroup, GroupMembersList[i].ValueByName('ID_OUT_CHILD'), 2,
+        GroupMembersList[i].ValueByName('ID_ORDER_IN'),
+        OutOrderList[cmbOrderOut.ItemIndex].ValueByName('ID_OUT')]) then
+      // TODO 1: убедиться, что происходит сохранение статуса 2 - отчислен из группы
+      begin
+        ShowMessage('Сохранение выполнено!');
+      end
+      else
+        ShowMessage('Ошибка при сохранении!');
+    end;
+  end;
+  ShowGroupMembersList;
+end;
+
+procedure TfLGroupMembers.cmbChooseAcademicYearChange(Sender: TObject);
+begin
+  IDAcademicYear := AcademicYearForGroup[cmbChooseAcademicYear.ItemIndex]
+    .ValueByName('ID');
+  if Assigned(LearningGroupName) then
+    FreeAndNil(LearningGroupName);
+  LearningGroupName := Kernel.GetLearningGroupName(IDEducationProgram,
+    IDPedagogue, IDAcademicYear, IDLearningForm, FIDStatus);
+  Kernel.FillingComboBox(cmbChoose, LearningGroupName, 'name_academic_year', false);
+    if LearningGroupName.Count > 0 then
+    begin
+      cmbChoose.DropDownCount := LearningGroupName.Count + 1;
+      cmbChoose.ItemIndex := 0;
+    end;
+  ShowChildListForGroupMember;
+end;
+
+procedure TfLGroupMembers.cmbChooseChange(Sender: TObject);
+begin
+  ShowChildListForGroupMember;
+end;
+
+procedure TfLGroupMembers.eSearchFIOChange(Sender: TObject);
+var
+  vInStatus, vMode: integer;
+begin
+  vInStatus := 1; // не показывать отчисленных
+  vMode := 0; // результат поиска начинается со строки поиска
+  if length(eSearchFIO.Text) > 2 then
+    ShowChildListForGroupMemberByFIO(vInStatus, vMode, eSearchFIO.Text)
+  else
+    ShowChildListForGroupMember;
+end;
+
+procedure TfLGroupMembers.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  ModalResult := mrOk;
+end;
+
+procedure TfLGroupMembers.FormCreate(Sender: TObject);
+begin
+  YearBirth := nil;
+  LearningGroupName := nil;
+  ChildListForGroupMember := nil;
+  InOrderList := nil;
+  OutOrderList := nil;
+  GroupMembersList := nil;
+  AcademicYearForGroup := nil;
+end;
+
+procedure TfLGroupMembers.FormDestroy(Sender: TObject);
+begin
+  if Assigned(YearBirth) then
+    FreeAndNil(YearBirth);
+  if Assigned(LearningGroupName) then
+    FreeAndNil(LearningGroupName);
+  if Assigned(ChildListForGroupMember) then
+    FreeAndNil(ChildListForGroupMember);
+  if Assigned(InOrderList) then
+    FreeAndNil(InOrderList);
+  if Assigned(OutOrderList) then
+    FreeAndNil(OutOrderList);
+  if Assigned(GroupMembersList) then
+    FreeAndNil(GroupMembersList);
+  if Assigned(AcademicYearForGroup) then
+    FreeAndNil(AcademicYearForGroup);
+end;
+
+procedure TfLGroupMembers.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  Panel1.Caption := 'Учебная группа: ' + StrLearningGroup;
+  if not Assigned(AcademicYearForGroup) then
+    AcademicYearForGroup := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbChooseAcademicYear, AcademicYearForGroup,
+    'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbChooseAcademicYear, AcademicYearForGroup,
+    true, 'ID', IDAcademicYear);
+
+  if Assigned(LearningGroupName) then
+    FreeAndNil(LearningGroupName);
+  // нужна возможность выбора групп НУЖНОГО учебного года, а так берется последний уч. год а в нем группы та пустые
+  LearningGroupName := Kernel.GetLearningGroupName(IDEducationProgram,
+    IDPedagogue, IDAcademicYear, IDLearningForm, FIDStatus);
+
+  with cmbChoose do
+  begin
+    Clear;
+    for i := 0 to LearningGroupName.Count - 1 do
+      Items.Add(LearningGroupName[i].ValueStrByName('name_academic_year'));
+    if LearningGroupName.Count > 0 then
+    begin
+      DropDownCount := LearningGroupName.Count + 1;
+       for i := 0 to LearningGroupName.Count - 1 do
+       if LearningGroupName[i].ValueByName('ID_OUT') = IDLearningGroup then
+       cmbChoose.ItemIndex := i;
+    end
+  end;
+  if Assigned(InOrderList) then
+    FreeAndNil(InOrderList);
+  InOrderList := Kernel.GetInOutOrderList(0, 1);
+  with cmbOrderIn do
+  begin
+    Clear;
+    for i := 0 to InOrderList.Count - 1 do
+      Items.Add(InOrderList[i].ValueStrByName('NUMBER_DATES_NAME'));
+    if InOrderList.Count > 0 then
+    begin
+      DropDownCount := InOrderList.Count + 1;
+      cmbOrderIn.ItemIndex := 0;
+    end;
+    if Assigned(OutOrderList) then
+      FreeAndNil(OutOrderList);
+    OutOrderList := Kernel.GetInOutOrderList(0, 2);
+    with cmbOrderOut do
+    begin
+      Clear;
+      for i := 0 to OutOrderList.Count - 1 do
+        Items.Add(OutOrderList[i].ValueStrByName('NUMBER_DATES_NAME'));
+      if OutOrderList.Count > 0 then
+      begin
+        DropDownCount := OutOrderList.Count + 1;
+        cmbOrderOut.ItemIndex := 0;
+      end;
+    end;
+    ShowChildListForGroupMember;
+    ShowGroupMembersList;
+  end;
+end;
+
+procedure TfLGroupMembers.lvChildListCustomDrawItem(Sender: TCustomListView;
+  Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
+var
+  i: integer;
+begin
+  { организовать подсветку записи отчисленного из студии обучающегося!!!! }
+  // for i := 0 to ChildListForGroupMember.Count - 1 do
+  // if ChildListForGroupMember[i].ValueByName('STATUS') = 2 then
+  //
+  // if Sender.ItemIndex = i then
+  // //     if Item = i then
+  // Sender.Canvas.Brush.Color := 6521080;
+
+  // if Item.SubItems.Strings[6] = 'Расформированная' then
+  // Sender.Canvas.Brush.Color := 6521080;
+end;
+
+procedure TfLGroupMembers.rgChooseModeClick(Sender: TObject);
+var
+  i: integer;
+begin
+  // TODO: поменять местами выбор из сущ группы и по году рождения
+  if rgChooseMode.ItemIndex = 0 then
+  begin
+    // if Assigned(LearningGroupName) then
+    // FreeAndNil(LearningGroupName);
+    if not Assigned(LearningGroupName) then
+      LearningGroupName := Kernel.GetLearningGroupName(IDEducationProgram,
+        IDPedagogue, IDAcademicYear, IDLearningForm, FIDStatus);
+    with cmbChoose do
+    begin
+      Clear;
+      for i := 0 to LearningGroupName.Count - 1 do
+        Items.Add(LearningGroupName[i].ValueStrByName('name_academic_year'));
+      if LearningGroupName.Count > 0 then
+      begin
+        DropDownCount := LearningGroupName.Count + 1;
+        ItemIndex := 0;
+      end;
+    end;
+  end
+  else
+  begin
+    if not Assigned(YearBirth) then
+      YearBirth := Kernel.GetYearBirth;
+    with cmbChoose do
+    begin
+      Clear;
+      for i := 0 to YearBirth.Count - 1 do
+        Items.Add(YearBirth[i].ValueStrByName('YearBirth'));
+      DropDownCount := YearBirth.Count + 1;
+      ItemIndex := 0;
+    end
+  end;
+  ShowChildListForGroupMember;
+end;
+
+procedure TfLGroupMembers.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfLGroupMembers.SetIDEducationProgram(const Value: integer);
+begin
+  if FIDEducationProgram <> Value then
+    FIDEducationProgram := Value;
+end;
+
+procedure TfLGroupMembers.SetIDLearningForm(const Value: integer);
+begin
+  if FIDLearningForm <> Value then
+    FIDLearningForm := Value;
+end;
+
+procedure TfLGroupMembers.SetIDLearningGroup(const Value: integer);
+begin
+  if FIDLearningGroup <> Value then
+    FIDLearningGroup := Value;
+end;
+
+procedure TfLGroupMembers.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfLGroupMembers.SetIDStatus(const Value: integer);
+begin
+  if FIDStatus <> Value then
+    FIDStatus := Value;
+end;
+
+procedure TfLGroupMembers.SetStrLearningGroup(const Value: string);
+begin
+  if FStrLearningGroup <> Value then
+    FStrLearningGroup := Value;
+end;
+
+procedure TfLGroupMembers.ShowChildListForGroupMember;
+var
+  choose_mode, in_id_learning_group, year_birth: integer;
+begin
+  if rgChooseMode.ItemIndex = 0 then // выбор из существующей учебной группы
+
+  begin
+    choose_mode := 0;
+    if LearningGroupName.Count > 0 then
+      in_id_learning_group := LearningGroupName[cmbChoose.ItemIndex]
+        .ValueByName('ID_OUT')
+    else
+      in_id_learning_group := 0;
+    year_birth := 0;
+  end
+  else // выбор типа по году рождения
+  begin
+    choose_mode := 1;
+    in_id_learning_group := 0;
+    year_birth := StrToInt(cmbChoose.Text);
+  end;
+  if Assigned(ChildListForGroupMember) then
+    FreeAndNil(ChildListForGroupMember);
+  ChildListForGroupMember := Kernel.GetChildListForGroupMember(choose_mode,
+    in_id_learning_group, year_birth);
+  Kernel.GetLVChildListForGroupMember(lvChildList, ChildListForGroupMember);
+  if lvChildList.Items.Count > 0 then
+    lvChildList.ItemIndex := 0;
+end;
+
+procedure TfLGroupMembers.ShowChildListForGroupMemberByFIO(const inStatus,
+  Mode: integer; const aSearchText: string);
+begin
+  if Assigned(ChildListForGroupMember) then
+    FreeAndNil(ChildListForGroupMember);
+  ChildListForGroupMember := Kernel.GetChildList(inStatus, Mode, aSearchText);
+  Kernel.GetLVChildListForGroupMember(lvChildList, ChildListForGroupMember);
+  if lvChildList.Items.Count > 0 then
+  begin
+    lvChildList.ItemIndex := 0;
+    bInGroup.Enabled := true;
+  end
+  else
+    bInGroup.Enabled := false;
+end;
+
+procedure TfLGroupMembers.ShowGroupMembersList;
+var
+  choose_mode, in_id_learning_group, year_birth: integer;
+begin
+  choose_mode := 0;
+  in_id_learning_group := IDLearningGroup;
+  year_birth := 0;
+  if Assigned(GroupMembersList) then
+    FreeAndNil(GroupMembersList);
+  GroupMembersList := Kernel.GetChildListForGroupMember(choose_mode,
+    in_id_learning_group, year_birth);
+  Kernel.GetLVGroupMember(lvGroupMemberList, GroupMembersList);
+  if lvGroupMemberList.Items.Count > 0 then
+    lvGroupMemberList.ItemIndex := 0;
+
+  // if rgChooseMode.ItemIndex = 0 then
+  // begin
+  // choose_mode := 0;
+  // // in_id_learning_group := IDLearningGroup;
+  // if LearningGroupName.Count > 0 then
+  // in_id_learning_group := LearningGroupName[cmbChoose.ItemIndex]
+  // .ValueByName('ID_OUT')
+  // else
+  // in_id_learning_group := 0;
+  // year_birth := 0;
+  // // RT :=
+  // end
+  // else
+  // begin
+  // choose_mode := 1;
+  // in_id_learning_group := 0;
+  // year_birth := StrToInt(cmbChoose.Text);
+  // end;
+  // if Assigned(ChildListForGroupMember) then
+  // FreeAndNil(ChildListForGroupMember);
+  // ChildListForGroupMember := Kernel.GetChildListForGroupMember(choose_mode,
+  // in_id_learning_group, year_birth);
+  // Kernel.GetLVChildListForGroupMember(lvChildList, ChildListForGroupMember);
+  // if lvChildList.Items.Count > 0 then
+  // lvChildList.ItemIndex := 0;
+end;
+
+end.

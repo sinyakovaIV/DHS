@@ -1,0 +1,282 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{719FF8EF-07F8-4C85-84DB-CA9D3A2F82BD}</ProjectGuid>
+        <ProjectVersion>15.4</ProjectVersion>
+        <FrameworkType>VCL</FrameworkType>
+        <MainSource>Pr_dhs.dpr</MainSource>
+        <Base>True</Base>
+        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
+        <TargetedPlatforms>1</TargetedPlatforms>
+        <AppType>Application</AppType>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
+        <Base_Win32>true</Base_Win32>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_1)'!=''">
+        <Cfg_1>true</Cfg_1>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
+        <Cfg_1_Win32>true</Cfg_1_Win32>
+        <CfgParent>Cfg_1</CfgParent>
+        <Cfg_1>true</Cfg_1>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
+        <Cfg_2>true</Cfg_2>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base)'!=''">
+        <SanitizedProjectName>Pr_dhs</SanitizedProjectName>
+        <DCC_UsePackage>bindcompfmx;fmx;rtl;dbrtl;IndySystem;DbxClientDriver;bindcomp;inetdb;DBXInterBaseDriver;DataSnapCommon;DataSnapClient;DataSnapServer;DataSnapProviderClient;xmlrtl;DbxCommonDriver;IndyProtocols;DBXMySQLDriver;dbxcds;bindengine;soaprtl;DBXOracleDriver;CustomIPTransport;dsnap;DBXInformixDriver;fmxase;IndyCore;DBXFirebirdDriver;inet;fmxobj;inetdbxpress;DBXSybaseASADriver;fmxdae;IPIndyImpl;dbexpress;DataSnapIndy10ServerTransport;$(DCC_UsePackage)</DCC_UsePackage>
+        <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
+        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
+        <DCC_E>false</DCC_E>
+        <DCC_N>false</DCC_N>
+        <DCC_S>false</DCC_S>
+        <DCC_F>false</DCC_F>
+        <DCC_K>false</DCC_K>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win32)'!=''">
+        <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
+        <DCC_UsePackage>EhLibADODataDrivers160;EhLibIBXDataDrivers160;vcldbx;EhLibBDEDataDrivers160;frx16;TeeDB;Rave100VCL;vclib;Tee;inetdbbde;DBXOdbcDriver;svnui;ibxpress;DBXSybaseASEDriver;vclimg;fmi;intrawebdb_120_160;frxDB16;fs16;TeeUI;FMXTee;vclactnband;vcldb;vcldsnap;bindcompvcl;vclie;vcltouch;Intraweb_120_160;DBXDb2Driver;websnap;vclribbon;VclSmp;fsDB16;frxe16;vcl;DataSnapConnectors;CloudService;DBXMSSQLDriver;CodeSiteExpressPkg;FmxTeeUI;dsnapcon;vclx;webdsnap;svn;EhLib160;bdertl;EhLibDBXDataDrivers160;adortl;$(DCC_UsePackage)</DCC_UsePackage>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1)'!=''">
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
+        <Manifest_File>None</Manifest_File>
+        <VerInfo_Locale>1049</VerInfo_Locale>
+        <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+        <DCC_Optimize>false</DCC_Optimize>
+        <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+        <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+        <DCC_RemoteDebug>true</DCC_RemoteDebug>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <DCC_OldDosFileNames>true</DCC_OldDosFileNames>
+        <DCC_LegacyIFEND>true</DCC_LegacyIFEND>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
+        <ILINK_MapFileType>DetailedSegments</ILINK_MapFileType>
+        <DCC_MapFile>3</DCC_MapFile>
+        <DCC_UnitSearchPath>C:\Program Files (x86)\Embarcadero\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <DCC_RemoteDebug>false</DCC_RemoteDebug>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2)'!=''">
+        <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+        <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+        <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+        <DCC_DebugInformation>0</DCC_DebugInformation>
+    </PropertyGroup>
+    <ItemGroup>
+        <DelphiCompile Include="$(MainSource)">
+            <MainSource>MainSource</MainSource>
+        </DelphiCompile>
+        <DCCReference Include="frmMain.pas">
+            <Form>fMain</Form>
+        </DCCReference>
+        <DCCReference Include="frmPedagogue.pas">
+            <Form>fPedagogue</Form>
+        </DCCReference>
+        <DCCReference Include="frmChild.pas">
+            <Form>fChild</Form>
+        </DCCReference>
+        <DCCReference Include="uIBConnect.pas"/>
+        <DCCReference Include="dbfunc.pas"/>
+        <DCCReference Include="uKernel.pas"/>
+        <DCCReference Include="frmContact.pas">
+            <Form>fContact</Form>
+        </DCCReference>
+        <DCCReference Include="frmLearningGroupList.pas">
+            <Form>fLearningGroupList</Form>
+        </DCCReference>
+        <DCCReference Include="frmLearningGroupEdit.pas">
+            <Form>fLearningGroupEdit</Form>
+        </DCCReference>
+        <DCCReference Include="frmLGroupMembers.pas">
+            <Form>fLGroupMembers</Form>
+        </DCCReference>
+        <DCCReference Include="frmPedagogueClass.pas">
+            <Form>fPedagogueClass</Form>
+        </DCCReference>
+        <DCCReference Include="frmPedagogueClassEdit.pas">
+            <Form>fPedagogueClassEdit</Form>
+        </DCCReference>
+        <DCCReference Include="frmPedagogueClassEditMini.pas">
+            <Form>fPedagogueClassEditMini</Form>
+        </DCCReference>
+        <DCCReference Include="frmAutorization.pas">
+            <Form>fAutorization</Form>
+        </DCCReference>
+        <DCCReference Include="frmTimesheet.pas">
+            <Form>fTimesheet</Form>
+        </DCCReference>
+        <DCCReference Include="frmTimesheetEdit.pas">
+            <Form>fTimesheetEdit</Form>
+        </DCCReference>
+        <DCCReference Include="frmExcelExperiment.pas">
+            <Form>fExcelExperiment</Form>
+        </DCCReference>
+        <DCCReference Include="frmReport_PedWorkLoad.pas">
+            <Form>fReport_PedWorkLoad</Form>
+        </DCCReference>
+        <DCCReference Include="frmParents.pas">
+            <Form>fParents</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmOrders.pas">
+            <Form>fOrders</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmSmallLearningGroup.pas">
+            <Form>fSmallLearningGroup</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmSmallLearnGrMembers.pas">
+            <Form>fSmallLearnGrMembers</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmExperiment.pas">
+            <Form>fExperiment</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmAgeStructure.pas">
+            <Form>fAgeStructure</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmJournalPedagogueByIndividualGroupChild.pas">
+            <Form>fJournalPedagogueByIndividualGroupChild</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmSickLeave.pas">
+            <Form>fSickLeave</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmChildTrips.pas">
+            <Form>fChildTrips</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmPedagogueTrips.pas">
+            <Form>fPedagogueTrips</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmJournalPedagogueByCollectiveGroupChild.pas">
+            <Form>fJournalPedagogueByCollectiveGroupChild</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmJournalPedagogue.pas">
+            <Form>fJournalPedagogue</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmNonWorkingDays.pas">
+            <Form>fNonWorkingDays</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmJournalOpening.pas">
+            <Form>fJournalOpening</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmRealisationVolume.pas">
+            <Form>fRealisationVolume</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmGroupComposition.pas">
+            <Form>fGroupComposition</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmChildDataForJournal.pas">
+            <Form>fChildDataForJournal</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmTimeSheetReport.pas">
+            <Form>fTimeSheetReport</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmMonitoringZUN.pas">
+            <Form>fMonitoringSUN</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="frmContingentSafety.pas">
+            <Form>fContingentSafety</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <BuildConfiguration Include="Release">
+            <Key>Cfg_2</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Base">
+            <Key>Base</Key>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Delphi.Personality>
+                <VersionInfo>
+                    <VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+                    <VersionInfo Name="AutoIncBuild">False</VersionInfo>
+                    <VersionInfo Name="MajorVer">1</VersionInfo>
+                    <VersionInfo Name="MinorVer">0</VersionInfo>
+                    <VersionInfo Name="Release">0</VersionInfo>
+                    <VersionInfo Name="Build">0</VersionInfo>
+                    <VersionInfo Name="Debug">False</VersionInfo>
+                    <VersionInfo Name="PreRelease">False</VersionInfo>
+                    <VersionInfo Name="Special">False</VersionInfo>
+                    <VersionInfo Name="Private">False</VersionInfo>
+                    <VersionInfo Name="DLL">False</VersionInfo>
+                    <VersionInfo Name="Locale">1049</VersionInfo>
+                    <VersionInfo Name="CodePage">1251</VersionInfo>
+                </VersionInfo>
+                <VersionInfoKeys>
+                    <VersionInfoKeys Name="CompanyName"/>
+                    <VersionInfoKeys Name="FileDescription"/>
+                    <VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
+                    <VersionInfoKeys Name="InternalName"/>
+                    <VersionInfoKeys Name="LegalCopyright"/>
+                    <VersionInfoKeys Name="LegalTrademarks"/>
+                    <VersionInfoKeys Name="OriginalFilename"/>
+                    <VersionInfoKeys Name="ProductName"/>
+                    <VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+                    <VersionInfoKeys Name="Comments"/>
+                </VersionInfoKeys>
+                <Source>
+                    <Source Name="MainSource">Pr_dhs.dpr</Source>
+                </Source>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k200.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp200.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k200.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp200.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                </Excluded_Packages>
+            </Delphi.Personality>
+            <Deployment/>
+            <Platforms>
+                <Platform value="Win32">True</Platform>
+            </Platforms>
+        </BorlandProject>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+    <Import Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" Project="$(BDS)\Bin\CodeGear.Delphi.Targets"/>
+    <Import Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')" Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj"/>
+</Project>

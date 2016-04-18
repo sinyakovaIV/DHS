@@ -1,0 +1,129 @@
+unit frmJournalPedagogue;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfJournalPedagogue = class(TForm)
+    Panel3: TPanel;
+    Panel1: TPanel;
+    lvLGNameLastLesson: TListView;
+    rgMounth: TRadioGroup;
+    bOpenJournal: TButton;
+    bClose: TButton;
+    bCollectiveJournal: TButton;
+    cmbAcademicYear: TComboBox;
+    Label1: TLabel;
+    procedure FormShow(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure lvLGNameLastLessonItemChecked(Sender: TObject; Item: TListItem);
+  private
+    AcademicYear: TResultTable;
+    GropeNameLastLesson: TResultTable;
+    FIDPedagogue: integer;
+    FStrPedagogue: string;
+    FIDAcademicYear: integer;
+    FStrAcademicYear: string;
+
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetStrPedagogue(const Value: string);
+    procedure SetIDAcademicYear(const Value: integer);
+    procedure SetStrAcademicYear(const Value: string);
+
+    procedure ShowLGNameLastLesson;
+  public
+    property StrPedagogue: string read FStrPedagogue write SetStrPedagogue;
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property StrAcademicYear: string read FStrAcademicYear
+      write SetStrAcademicYear;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fJournalPedagogue: TfJournalPedagogue;
+
+implementation
+
+{$R *.dfm}
+{ TfJournalPedagogue }
+
+// журнал педагога, журнал посещаемости (инд, групп- и мелкогрупповых занятий)
+// разновидности (особенности, описания) журналов
+// инд страничка ученика: lv с датой, днем недели, кол-во часов (0 или 1), тема занятия (с кодом/шифром) или коммент к уроку, возможно статус
+// процедура для автозаполнения статусов расписания как утвержденных
+
+procedure TfJournalPedagogue.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  GropeNameLastLesson := nil;
+end;
+
+procedure TfJournalPedagogue.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(GropeNameLastLesson) then
+    FreeAndNil(GropeNameLastLesson);
+end;
+
+procedure TfJournalPedagogue.FormShow(Sender: TObject);
+begin
+  Panel1.Caption := StrPedagogue + ', ' + StrAcademicYear + ' учебный год.';
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+  rgMounth.ItemIndex := 0;
+  ShowLGNameLastLesson;
+end;
+
+procedure TfJournalPedagogue.lvLGNameLastLessonItemChecked(Sender: TObject;
+  Item: TListItem);
+begin
+   // если отметить последнего человека из списка, то отметятся все
+   // если отмечаем первого человека, то отмечаются все, но если потом снимаем отметку со второго, то снимаются остальные
+end;
+
+procedure TfJournalPedagogue.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfJournalPedagogue.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfJournalPedagogue.SetStrAcademicYear(const Value: string);
+begin
+  if FStrAcademicYear <> Value then
+    FStrAcademicYear := Value;
+end;
+
+procedure TfJournalPedagogue.SetStrPedagogue(const Value: string);
+begin
+  if FStrPedagogue <> Value then
+    FStrPedagogue := Value;
+end;
+
+procedure TfJournalPedagogue.ShowLGNameLastLesson;
+begin
+  if Assigned(GropeNameLastLesson) then
+    FreeAndNil(GropeNameLastLesson);
+  GropeNameLastLesson := Kernel.GetLGNameLastLesson(IDPedagogue, IDAcademicYear);
+  // выбираю данные из энтой процедуры, аналогично списку класса педагога
+  Kernel.GetLVGropeNameLastLesson(lvLGNameLastLesson, GropeNameLastLesson);
+  if lvLGNameLastLesson.Items.Count > 0 then
+    lvLGNameLastLesson.ItemIndex := 0;
+end;
+
+end.

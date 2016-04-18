@@ -1,0 +1,298 @@
+unit frmOrders;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfOrders = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label3: TLabel;
+    Label5: TLabel;
+    Label2: TLabel;
+    cmbStatusOrder2: TComboBox;
+    cmbTypeOrders2: TComboBox;
+    cmbAcademicYear2: TComboBox;
+    bSave: TButton;
+    bClose: TButton;
+    Label4: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    eNumberOrder: TEdit;
+    dtpDateOrder: TDateTimePicker;
+    dtpDateEvent: TDateTimePicker;
+    mCommentOrder: TMemo;
+    GroupBox2: TGroupBox;
+    cmbTypeOrders1: TComboBox;
+    cmbStatusOrder1: TComboBox;
+    cmbAcademicYear1: TComboBox;
+    Label10: TLabel;
+    Label8: TLabel;
+    Label9: TLabel;
+    lvOrders: TListView;
+    bAddOrder: TButton;
+    Label11: TLabel;
+    dtpEventEnding: TDateTimePicker;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure cmbAcademicYear1Change(Sender: TObject);
+    procedure cmbTypeOrders1Change(Sender: TObject);
+    procedure cmbStatusOrder1Change(Sender: TObject);
+    procedure lvOrdersSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure bSaveClick(Sender: TObject);
+    procedure bAddOrderClick(Sender: TObject);
+  private
+    IDOrder: integer;
+    AcademicYear: TResultTable;
+    OrderType: TResultTable;
+    StatusOrder: TResultTable;
+    Orders: TResultTable;
+    FIDCurAcademicYear: integer;
+    procedure ShowOrdersList;
+    procedure SetIDCurAcademicYear(const Value: integer);
+    procedure DoClearOrder;
+  public
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+
+  end;
+
+var
+  fOrders: TfOrders;
+
+implementation
+
+{$R *.dfm}
+
+// TODO: добавить сортировку приказов: по дате, по типу, по статусу
+// TODO: продумать вывод в комбик с типами приказов - добавить объединенные типы а'ля: Для расписания, Для нагрузки
+procedure TfOrders.bAddOrderClick(Sender: TObject);
+var
+  i: integer;
+begin
+  DoClearOrder;
+  for i := 0 to AcademicYear.Count - 1 do
+    if AcademicYear[i].ValueByName('ID') = IDCurAcademicYear then
+      cmbAcademicYear2.ItemIndex := i;
+  IDOrder := -1;
+end;
+
+procedure TfOrders.bSaveClick(Sender: TObject);
+begin
+  if (cmbAcademicYear2.ItemIndex = -1) or (cmbTypeOrders2.ItemIndex = -1) or
+    (cmbStatusOrder2.ItemIndex = -1) or (Trim(eNumberOrder.Text) = '') then
+  begin
+    ShowMessage('Не все поля заполнены!');
+    Exit;
+  end;
+  if Kernel.SaveOrder([IDOrder, OrderType[cmbTypeOrders2.ItemIndex]
+    .ValueByName('ID'), AcademicYear[cmbAcademicYear2.ItemIndex]
+    .ValueByName('ID'), StatusOrder[cmbStatusOrder2.ItemIndex]
+    .ValueByName('CODE'), StrToInt(eNumberOrder.Text),
+    dateToStr(dtpDateOrder.Date), dateToStr(dtpDateEvent.Date),
+    dateToStr(dtpEventEnding.Date), mCommentOrder.Text]) then
+    ShowMessage('Сохранение выполнено!')
+  else
+    ShowMessage('Ошибка при сохранении!');
+  ShowOrdersList;
+end;
+
+procedure TfOrders.cmbAcademicYear1Change(Sender: TObject);
+begin
+  ShowOrdersList;
+end;
+
+procedure TfOrders.cmbStatusOrder1Change(Sender: TObject);
+var
+  i: integer;
+begin
+  ShowOrdersList;
+  i := cmbStatusOrder1.ItemIndex;
+end;
+
+procedure TfOrders.cmbTypeOrders1Change(Sender: TObject);
+begin
+  ShowOrdersList;
+end;
+
+procedure TfOrders.DoClearOrder;
+begin
+  eNumberOrder.Clear;
+  mCommentOrder.Clear;
+  dtpDateOrder.Date := Date;
+  dtpDateEvent.Date := Date;
+  dtpEventEnding.Date := Date;
+  cmbAcademicYear2.ItemIndex := -1;
+  cmbTypeOrders2.ItemIndex := -1;
+  cmbStatusOrder2.ItemIndex := -1;
+end;
+
+procedure TfOrders.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  OrderType := nil;
+  StatusOrder := nil;
+  Orders := nil;
+end;
+
+procedure TfOrders.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(OrderType) then
+    FreeAndNil(OrderType);
+  if Assigned(StatusOrder) then
+    FreeAndNil(StatusOrder);
+  if Assigned(Orders) then
+    FreeAndNil(Orders);
+end;
+
+procedure TfOrders.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  with cmbAcademicYear1 do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to AcademicYear.Count - 1 do
+      Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+    DropDownCount := AcademicYear.Count + 1;
+    for i := 0 to AcademicYear.Count - 1 do
+      if AcademicYear[i].ValueByName('ID') = IDCurAcademicYear then
+        cmbAcademicYear1.ItemIndex := i + 1;
+  end;
+  with cmbAcademicYear2 do
+  begin
+    Clear;
+    for i := 0 to AcademicYear.Count - 1 do
+      Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+    // DropDownCount := AcademicYear.Count + 1;
+    DropDownCount := AcademicYear.Count; // с этой строкой ничего не меняется
+    // да ваще без разницы! Сво-во прописывается автоматом даже без спецустановки?
+  end;
+
+  if not Assigned(StatusOrder) then
+    StatusOrder := Kernel.GetStatusOrders(5);
+  with cmbStatusOrder1 do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to StatusOrder.Count - 1 do
+      Items.Add(StatusOrder[i].ValueStrByName('NOTE'));
+    DropDownCount := StatusOrder.Count + 1;
+    cmbStatusOrder1.ItemIndex := 0; // не комментирвать строку!
+  end;
+  with cmbStatusOrder2 do
+  begin
+    Clear;
+    for i := 0 to StatusOrder.Count - 1 do
+      Items.Add(StatusOrder[i].ValueStrByName('NOTE'));
+    DropDownCount := StatusOrder.Count;
+    // cmbStatusOrder1.ItemIndex := 0;
+  end;
+
+  if not Assigned(OrderType) then
+    OrderType := Kernel.GetOrderType;
+  with cmbTypeOrders1 do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to OrderType.Count - 1 do
+      Items.Add(OrderType[i].ValueStrByName('NAME'));
+    DropDownCount := OrderType.Count + 1;
+    cmbTypeOrders1.ItemIndex := 0; // если закоммить, то исключение лезет
+  end;
+  with cmbTypeOrders2 do
+  begin
+    Clear;
+    for i := 0 to OrderType.Count - 1 do
+      Items.Add(OrderType[i].ValueStrByName('NAME'));
+    DropDownCount := OrderType.Count;
+    // cmbTypeOrders1.ItemIndex := 0;
+  end;
+
+  ShowOrdersList;
+
+end;
+
+procedure TfOrders.lvOrdersSelectItem(Sender: TObject; Item: TListItem;
+  Selected: Boolean);
+var
+  i: integer;
+begin
+  if Orders.Count > 0 then
+    with Orders[Item.Index] do
+    begin
+      IDOrder := ValueByName('ID');
+      eNumberOrder.Text := ValueByName('NAMBER_ORDER');
+      mCommentOrder.Text := ValueStrByName('NOTE');
+      dtpDateOrder.Date := ValueByName('DATE_ORDER');
+      dtpDateEvent.Date := ValueByName('DATE_EVENT');
+      dtpEventEnding.Date := ValueByName('DATE_ENDING');
+      for i := 0 to AcademicYear.Count - 1 do
+        if cmbAcademicYear2.Items[i] = ValueStrByName('ACADEMIC_YEAR') then
+          cmbAcademicYear2.ItemIndex := i;
+      for i := 0 to OrderType.Count - 1 do
+        if cmbTypeOrders2.Items[i] = ValueStrByName('TYPE_ORDER') then
+          cmbTypeOrders2.ItemIndex := i;
+      for i := 0 to StatusOrder.Count - 1 do
+        if cmbStatusOrder2.Items[i] = ValueStrByName('NAME_STATUS') then
+          cmbStatusOrder2.ItemIndex := i;
+    end
+  else
+  begin
+    DoClearOrder;
+    IDOrder := -1;
+  end;
+
+end;
+
+procedure TfOrders.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+procedure TfOrders.ShowOrdersList;
+var
+  in_type, academic_year, status: integer;
+begin
+  if cmbAcademicYear1.ItemIndex = 0 then
+    academic_year := 0
+  else
+    academic_year := AcademicYear[cmbAcademicYear1.ItemIndex - 1]
+      .ValueByName('ID');
+
+  if cmbTypeOrders1.ItemIndex = 0 then
+    in_type := 0
+  else
+    in_type := OrderType[cmbTypeOrders1.ItemIndex - 1].ValueByName('ID');
+
+  if cmbStatusOrder1.ItemIndex = 0 then
+    status := 0
+  else
+    status := StatusOrder[cmbStatusOrder1.ItemIndex - 1].ValueByName('CODE');
+
+  if Assigned(Orders) then
+    FreeAndNil(Orders);
+  Orders := Kernel.GetOrders(in_type, academic_year, status);
+  Kernel.GetLVOrders(lvOrders, Orders);
+  if lvOrders.Items.Count > 0 then
+    lvOrders.ItemIndex := 0
+  else
+    DoClearOrder;
+  // else
+  // lvOrders.Clear;
+
+end;
+
+end.

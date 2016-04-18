@@ -1,0 +1,117 @@
+unit frmExcelExperinent;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.StdCtrls,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, ComObj, Excel_TLB, ActiveX;
+
+type
+  TfExcelExperiment = class(TForm)
+    Button1: TButton;
+    procedure Button1Click(Sender: TObject);
+  private
+    ExcelApp: OleVariant;
+    WorkBook, Sheet: Variant;
+    function CheckExcelRun: boolean;
+    function CreateApplication(FileName: string): boolean;
+    function RunExcel(DisableAlerts: boolean = true;
+      Visible: boolean = false): boolean;
+    function IsOLEObjectInstalled(Name: String): boolean;
+  public
+    { Public declarations }
+  end;
+
+var
+  fExcelExperiment: TfExcelExperiment;
+
+implementation
+
+{$R *.dfm}
+{ TfExcelExperiment }
+
+procedure TfExcelExperiment.Button1Click(Sender: TObject);
+begin
+  if IsOLEObjectInstalled('Excel.Application') then
+    if CheckExcelRun then // исключение
+      //ExcelApp.Visible := true
+    else
+      //RunExcel;
+      CreateApplication('kjhakjhf')
+  else
+    ShowMessage('На Вашем компьютере не установлен MSExcel');
+  // а если установлен OpenOffice???
+end;
+
+function TfExcelExperiment.CheckExcelRun: boolean;
+begin
+  try
+  // ЕСЛИ ПРИЛОЖЕНИЕ НЕ ЗАПУЩЕНО, ТО ВЫЛЕЗАЕТ ИСКЛЮЧЕНИЕ, ЧТО ОПЕРАЦИЯ НЕДОСТУПНА. ТАК И ДОЛЖНО БЫТЬ?
+    ExcelApp := GetActiveOleObject('Excel.Application');
+    // не показывать системные сообщения Excel'a
+    // ExcelApp.Application.EnableEvents := false;
+    //ExcelApp.Visible := true; // здесь тож ругается
+    Result := true;
+  except
+    Result := false;
+  end;
+end;
+
+function TfExcelExperiment.CreateApplication(FileName: string): boolean;
+begin
+try
+  // Создаем объект интерфейса для доступа к серверу COM
+  ExcelApp := CreateOleObject('Excel.Application');
+  // Отключаем реакцию Excel на события,
+  // чтобы ускорить вывод информации
+  //ExcelApp.Application.EnableEvents := false;  // НЕ ЗАПУЩЕН ехс, ТО ГРИТ, ЧТО НЕДОСТАТОЧНО ПАМЯТИ ДЛЯ ЗАВЕРШЕНИЯ ОПЕРАЦИИ
+  // Создаем книгу и обращаемся к первому листу
+  WorkBook := ExcelApp.Application.WorkBooks.Add(GetCurrentDir() + FileName);
+  Sheet := WorkBook.WorkSheets[1];
+  Result := true;
+Except
+  ShowMessage('Внимание! Произошла ошибка при создании MS Excel приложения');
+  Result := false;
+  ExcelApp.DisplayAlerts := false; // отключаем предупреждения
+  ExcelApp.WorkBooks.Close; // закроем все книги
+  ExcelApp.Application.quit;
+  // освобождаем интерфейсы
+  Sheet := Unassigned;
+  WorkBook := Unassigned;
+  ExcelApp := Unassigned;
+end;
+end;
+
+function TfExcelExperiment.IsOLEObjectInstalled(Name: String): boolean;
+var      //КАЖИСЬ ПРОЦЕДУРА РАБОЧАЯ...
+  ClassID: TCLSID;
+  Rez: HRESULT; // упростить и убрать эту переменную потом...
+begin
+  // Ищем CLSID OLE-объекта
+  // Функция ищет CLSID (идентификатор класса) соответствующ ProgID в реестре.
+  Rez := CLSIDFromProgID(PWideChar(WideString(Name)), ClassID);
+  if Rez = S_OK then
+    // Объект найден, S_OK - информация успешно записана в системный реестр
+    Result := true
+  else
+    Result := false;
+end;
+
+function TfExcelExperiment.RunExcel(DisableAlerts, Visible: boolean): boolean;
+begin
+  try
+    ExcelApp := CreateOleObject('Excel.Application');
+    // не показывать системные сообщения Excel'a
+    ExcelApp.Application.EnableEvents := DisableAlerts;
+    // для этой операции недостаточно памяти..................
+    ExcelApp.Visible := Visible;
+    Result := true;
+  except
+    Result := false;
+    ExcelApp := Unassigned;
+    // ExcelApp := free;
+  end;
+end;
+
+end.

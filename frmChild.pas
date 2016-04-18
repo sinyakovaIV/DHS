@@ -1,0 +1,406 @@
+unit frmChild;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfChild = class(TForm)
+    Panel1: TPanel;
+    Splitter1: TSplitter;
+    Panel2: TPanel;
+    Panel3: TPanel;
+    Panel4: TPanel;
+    Panel5: TPanel;
+    rgSaerchCriteria: TRadioGroup;
+    eSearchFIO: TEdit;
+    Label1: TLabel;
+    chbExpelled: TCheckBox;
+    Panel6: TPanel;
+    Label2: TLabel;
+    Label3: TLabel;
+    eSurname: TEdit;
+    eName: TEdit;
+    ePatronomic: TEdit;
+    Label4: TLabel;
+    Label5: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    cmbGender: TComboBox;
+    meBirthday: TMaskEdit;
+    cmbLearningStatus: TComboBox;
+    bNewRecord: TButton;
+    bSave: TButton;
+    Button4: TButton;
+    PageControl1: TPageControl;
+    tshAdditionalData: TTabSheet;
+    tshStatisticsData: TTabSheet;
+    Label8: TLabel;
+    cmbEducationalOrgType: TComboBox;
+    Label9: TLabel;
+    mEducationName: TMemo;
+    Label10: TLabel;
+    ePostcode: TEdit;
+    Label11: TLabel;
+    mHomeAddress: TMemo;
+    Label12: TLabel;
+    lvLearningChild: TListView;
+    eClass: TEdit;
+    Label13: TLabel;
+    Label14: TLabel;
+    lvChildContact: TListView;
+    bAddContact: TButton;
+    cmbShift: TComboBox;
+    Label15: TLabel;
+    mNote: TMemo;
+    bChangeContact: TButton;
+    bRemoveContact: TButton;
+    bSaveChange: TButton;
+    GroupBox1: TGroupBox;
+    chbAnotherDOD: TCheckBox;
+    chbLimitedPossible: TCheckBox;
+    chbWithoutParents: TCheckBox;
+    chbReceivCertificate: TCheckBox;
+    bSaveStat: TButton;
+    bParent: TButton;
+    procedure FormShow(Sender: TObject);
+    procedure bSaveClick(Sender: TObject);
+    procedure bNewRecordClick(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure lvLearningChildSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure FormCreate(Sender: TObject);
+    procedure eSearchFIOChange(Sender: TObject);
+    procedure bSaveChangeClick(Sender: TObject);
+    procedure bSaveStatClick(Sender: TObject);
+    procedure bParentClick(Sender: TObject);
+    procedure lvLearningChildCustomDrawItem(Sender: TCustomListView;
+      Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
+  private
+    // переменная, в которую будут помещены данные из таблицы CT_STATUS
+    LearningChildStatus: TResultTable;
+    // здесь данные из CT_EDUCATIONAL_ORG_TYPE
+    EducationalOrgType: TResultTable;
+    // данные из WT_LEARNING_CHILD
+    LearningChildList: TResultTable;
+    // данные из WT_LEARNING_CHILD_ADDITIONAL
+    LearningChildAdditional: TResultTable;
+    NewIDLearnigChild: TResultTable;
+    procedure ShowChildList(const inStatus, FreeOldData: Boolean;
+      const Mode: integer = -1; const aSearchText: string = '');
+    procedure DoClearChildAdditional;
+  public
+    IDChild: integer; // ?????????
+  end;
+
+var
+  fChild: TfChild;
+
+implementation
+
+{$R *.dfm}
+
+uses frmContact, frmParents;
+
+procedure TfChild.bNewRecordClick(Sender: TObject);
+begin
+  IDChild := -1;
+  eSurname.SetFocus;
+  eSurname.Clear;
+  eName.Clear;
+  ePatronomic.Clear;
+  meBirthday.Clear;
+  cmbGender.ItemIndex := -1;
+  cmbLearningStatus.ItemIndex := 0;
+  DoClearChildAdditional;
+end;
+
+procedure TfChild.bParentClick(Sender: TObject);
+begin
+  if (not Assigned(fParents)) then
+    fParents := TfParents.Create(Self);
+  fParents.StrChild := eSurname.Text + ' ' + eName.Text;
+  fParents.IDChild := IDChild;
+  fParents.Show;
+end;
+
+procedure TfChild.bSaveChangeClick(Sender: TObject); // сохранить ДЕТдопсвения
+begin
+  if Kernel.SaveChildAdditional([IDChild, cmbShift.Text, eClass.Text,
+    mHomeAddress.Text, ePostcode.Text, mEducationName.Text, mNote.Text,
+    EducationalOrgType[cmbEducationalOrgType.ItemIndex].ValueByName('ID')]) then
+  begin
+    ShowMessage('Сохранение выполнено!');
+    ShowChildList(chbExpelled.Checked, true); // для обновления осн.сведений
+    // if lvLearningChild.Items.Count > 0 then
+    // lvLearningChild.ItemIndex := 0;
+  end
+  else
+    ShowMessage('Ошибка при сохранении!');
+end;
+
+procedure TfChild.bSaveClick(Sender: TObject); // сохранить основные ДЕТсведения
+var
+  i, newID, id, id_EducationalOrgType, status: integer;
+  Birthday, Surname, ChName, Patronomic, Gender: string;
+begin
+  if (cmbGender.ItemIndex = -1) or (cmbLearningStatus.ItemIndex = -1) or
+    (Trim(eSurname.Text) = '') or (Trim(eName.Text) = '') then
+  begin
+    ShowMessage('Не все поля заполнены!');
+    Exit;
+  end;
+  id_EducationalOrgType := EducationalOrgType[cmbEducationalOrgType.ItemIndex]
+    .ValueByName('ID');
+  status := LearningChildStatus[cmbLearningStatus.ItemIndex]
+    .ValueByName('CODE');
+  Birthday := meBirthday.Text;
+  Surname := eSurname.Text;
+  ChName := eName.Text;
+  Patronomic := ePatronomic.Text;
+  Gender := cmbGender.Text;
+  // if Kernel.SaveLearningChild([IDChild, id_EducationalOrgType, status, Birthday,
+  // Surname, ChName, Patronomic, Gender]) then
+  // ShowMessage('Сохранение выполнено!');
+  if Assigned(NewIDLearnigChild) then
+    FreeAndNil(NewIDLearnigChild);
+  // при редактировании записи IDChild получу в процlvLearningChildSelectItem
+  // и этому же IDChild окажется равным NewIDLearnigChild
+  NewIDLearnigChild := Kernel.GetNewIDLearningChild(IDChild,
+    id_EducationalOrgType, status, Birthday, Surname, ChName,
+    Patronomic, Gender);
+  ShowChildList(chbExpelled.Checked, true);
+  if NewIDLearnigChild.Count > 0 then
+  begin
+    newID := NewIDLearnigChild[0].ValueByName('ID_OUT');
+    for i := 0 to LearningChildList.Count - 1 do
+    begin
+      // id - сюды временно заливаю id детей из таблицы, чтобы сверить
+      // с новым/старым ID редактируемого или добавленного детенка
+      id := LearningChildList[i].ValueByName('ID_OUT_CHILD');
+      if newID = id then
+      begin
+        lvLearningChild.SetFocus;
+        lvLearningChild.ItemIndex := i;
+        lvLearningChild.Items[i].MakeVisible(False);
+        // новый детнок окажется видимым внизу LV
+        Exit;
+      end;
+    end;
+  end
+  else
+    ShowMessage('Ошибка при сохранении!');
+  // если NewIDLearnigChild.Count = 0, то произошла ошибка при сохранении
+end;
+
+procedure TfChild.bSaveStatClick(Sender: TObject);
+var
+  another_educational_org, limited_opportunities, without_parents,
+    certificate: integer;
+begin
+  if chbAnotherDOD.Checked then
+    another_educational_org := 1
+  else
+    another_educational_org := 0;
+
+  if chbLimitedPossible.Checked then
+    limited_opportunities := 1
+  else
+    limited_opportunities := 0;
+
+  if chbWithoutParents.Checked then
+    without_parents := 1
+  else
+    without_parents := 0;
+
+  if chbReceivCertificate.Checked then
+    certificate := 1
+  else
+    certificate := 0;
+
+  if Kernel.SaveChildStatistic([IDChild, another_educational_org,
+    limited_opportunities, without_parents, certificate]) then
+    ShowMessage('Сохранение выполнено!')
+  else
+    ShowMessage('Ошибка при сохранении!');
+end;
+
+procedure TfChild.Button4Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfChild.DoClearChildAdditional;
+begin
+  mEducationName.Clear;
+  eClass.Clear;
+  cmbShift.ItemIndex := -1;
+  ePostcode.Clear;
+  mHomeAddress.Clear;
+  mNote.Clear;
+  chbAnotherDOD.Checked := False;
+  chbLimitedPossible.Checked := False;
+  chbWithoutParents.Checked := False;
+  chbReceivCertificate.Checked := False;
+end;
+
+procedure TfChild.eSearchFIOChange(Sender: TObject);
+begin
+  if length(eSearchFIO.Text) > 2 then
+    ShowChildList(chbExpelled.Checked, true, rgSaerchCriteria.ItemIndex,
+      eSearchFIO.Text)
+  else
+    ShowChildList(chbExpelled.Checked, true);
+  // if lvLearningChild.Items.Count > 0 then
+  // lvLearningChild.ItemIndex := 0;
+end;
+
+procedure TfChild.FormCreate(Sender: TObject);
+begin
+  // инициализируем переменные во избежания получения ими случайных значений
+  LearningChildStatus := nil;
+  LearningChildList := nil;
+  IDChild := -1; // а надо ли инициализировать эту переменную? Зачем?
+  // IDParent := -1;
+  LearningChildAdditional := nil;
+  NewIDLearnigChild := nil;
+end;
+
+procedure TfChild.FormDestroy(Sender: TObject);
+begin
+  if Assigned(LearningChildStatus) then
+    FreeAndNil(LearningChildStatus);
+  if Assigned(LearningChildList) then
+    FreeAndNil(LearningChildList);
+  if Assigned(EducationalOrgType) then
+    FreeAndNil(EducationalOrgType);
+  if Assigned(LearningChildAdditional) then
+    FreeAndNil(LearningChildAdditional);
+  if Assigned(NewIDLearnigChild) then
+    FreeAndNil(NewIDLearnigChild);
+end;
+
+procedure TfChild.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  // заполняем ComboBox со статусами (обучается/отчислен)
+  if not Assigned(LearningChildStatus) then
+    LearningChildStatus := Kernel.GetStatusList(1);
+  with cmbLearningStatus do
+  begin
+    Clear;
+    for i := 0 to LearningChildStatus.Count - 1 do
+      Items.Add(LearningChildStatus[i].ValueStrByName('NOTE'));
+  end;
+
+  // заполняем ComboBox с типами ОУ
+  if not Assigned(EducationalOrgType) then
+    EducationalOrgType := Kernel.GetEducationalOrgType;
+  with cmbEducationalOrgType do
+  begin
+    Clear;
+    for i := 0 to EducationalOrgType.Count - 1 do
+      Items.Add(EducationalOrgType[i].ValueStrByName('NAME'));
+  end;
+  ShowChildList(chbExpelled.Checked, true);
+
+end;
+
+procedure TfChild.lvLearningChildCustomDrawItem(Sender: TCustomListView;
+  Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
+begin
+  if Item.SubItems.Strings[2] = '2' then
+    Sender.Canvas.Brush.Color := 6521080;
+end;
+
+procedure TfChild.lvLearningChildSelectItem(Sender: TObject; Item: TListItem;
+  Selected: Boolean);
+var
+  i: integer;
+begin
+  with LearningChildList[Item.Index] do
+  begin
+    IDChild := ValueByName('ID_OUT_CHILD');
+    eSurname.Text := ValueStrByName('SURNAME');
+    eName.Text := ValueStrByName('NAME');
+    ePatronomic.Text := ValueStrByName('PATRONOMIC');
+    meBirthday.Text := ValueStrByName('BIRTHDAY');
+    for i := 0 to cmbGender.Items.Count - 1 do
+      if cmbGender.Items[i] = ValueStrByName('GENDER') then
+        cmbGender.ItemIndex := i; // заполняем cmb с полом
+    for i := 0 to LearningChildStatus.Count - 1 do
+      if LearningChildStatus[i].ValueStrByName('CODE') = ValueStrByName('STATUS')
+      then
+        cmbLearningStatus.ItemIndex := i; // заполняем cmb со статусом
+    for i := 0 to EducationalOrgType.Count - 1 do
+      if EducationalOrgType[i].ValueStrByName('ID')
+        = ValueStrByName('ID_EDUCATIONAL_ORG_TYPE') then
+        cmbEducationalOrgType.ItemIndex := i; // заполняем cmb с типом ОУ
+  end;
+  // дополнительные сведения обновляем при каждом событии в LVLearningChild
+  if Assigned(LearningChildAdditional) then
+    FreeAndNil(LearningChildAdditional);
+  LearningChildAdditional := Kernel.GetChildAdditional(IDChild);
+  if LearningChildAdditional.Count > 0 then
+    with LearningChildAdditional[0] do
+    begin
+      mEducationName.Text := ValueStrByName('EDUCATION_NAME');
+      eClass.Text := ValueStrByName('CL_IN_SCHOOL');
+      for i := 0 to cmbShift.Items.Count - 1 do
+        if cmbShift.Items[i] = ValueStrByName('SHIFT') then
+          cmbShift.ItemIndex := i; // заполняем cmb со сменой
+      ePostcode.Text := ValueStrByName('POSTCODE');
+      mHomeAddress.Text := ValueStrByName('HOME_ADDRESS');
+      mNote.Text := ValueStrByName('NOTE');
+
+      if ValueByName('ANOTHER_EDUCATIONAL_ORG') = 1 then
+        chbAnotherDOD.Checked := true
+      else
+        chbAnotherDOD.Checked := False;
+
+      if ValueByName('LIMITED_OPPORTUNITIES') = 1 then
+        chbLimitedPossible.Checked := true
+      else
+        chbLimitedPossible.Checked := False;
+
+      if ValueByName('WITHOUT_PARENTS') = 1 then
+        chbWithoutParents.Checked := true
+      else
+        chbWithoutParents.Checked := False;
+
+      if ValueByName('CERTIFICATE') = 1 then
+        chbReceivCertificate.Checked := true
+      else
+        chbReceivCertificate.Checked := False;
+    end
+  else
+  begin
+    DoClearChildAdditional;
+  end;
+
+end;
+
+procedure TfChild.ShowChildList(const inStatus, FreeOldData: Boolean;
+  const Mode: integer; const aSearchText: string);
+var
+  vInStatus: integer;
+begin
+  if FreeOldData and Assigned(LearningChildList) then
+    FreeAndNil(LearningChildList);
+  if inStatus then
+    vInStatus := 0
+  else
+    vInStatus := 1;
+  if not Assigned(LearningChildList) then
+    LearningChildList := Kernel.GetChildList(vInStatus, Mode, aSearchText);
+  Kernel.GetLVLearningChild(lvLearningChild, LearningChildList);
+  if lvLearningChild.Items.Count > 0 then
+    lvLearningChild.ItemIndex := 0;
+end;
+
+end.

@@ -1,0 +1,159 @@
+unit frmAutorization;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, dbfunc, uKernel;
+// потом убрать это:
+// Vcl.Menus, Vcl.ButtonGroup, Vcl.ComCtrls, Vcl.XPMan;
+
+type
+  TfAutorization = class(TForm)
+    Panel1: TPanel;
+    Label1: TLabel;
+    cmbChoosePedagogue: TComboBox;
+    Edit1: TEdit;
+    bOk: TButton;
+    Button2: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure bOkClick(Sender: TObject);
+  private
+    PedagogueSurnameNP: TResultTable;
+    Procedure OnlyOne;
+  public
+    { Public declarations }
+  end;
+
+var
+  fAutorization: TfAutorization;
+
+implementation
+
+{$R *.dfm}
+
+uses frmMain, IniFiles;
+
+procedure TfAutorization.bOkClick(Sender: TObject);
+begin
+  if Trim(Edit1.Text) = '' then
+  begin
+    ShowMessage('Введите пароль!');
+    Exit;
+  end;
+
+  if Edit1.Text = PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex]
+    .ValueStrByName('PASS_WORD') then
+  begin
+    fAutorization.Hide;
+    fMain.StrPedagogue := PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex]
+      .ValueStrByName('SURNAMENP');
+    fMain.IDPedagogue := PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex]
+      .ValueByName('ID_OUT');
+    fMain.Show;
+  end
+  else
+  begin
+    ShowMessage('Неверный пароль!');
+    Exit;
+  end;
+
+end;
+
+procedure TfAutorization.Button2Click(Sender: TObject);
+begin
+  // Application.Terminate;
+  // Halt;
+  Close;
+  // Application.MainForm(fMain.Close);
+end;
+
+procedure TfAutorization.FormCreate(Sender: TObject);
+begin
+  OnlyOne;
+  PedagogueSurnameNP := nil;
+end;
+
+procedure TfAutorization.FormDestroy(Sender: TObject);
+begin
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+end;
+
+procedure TfAutorization.FormShow(Sender: TObject);
+var
+  fIniFile: TIniFile;
+  i: integer;
+begin
+  try
+    if FileExists(ExtractFilePath(Application.ExeName) + 'config.ini') then
+      try
+        fIniFile := TIniFile.Create(ExtractFilePath(Application.ExeName) +
+          'config.ini');
+        if Kernel.IBConnect.Connect(fIniFile.ReadString('Dhs', 'Path', '')) then
+          // вероятно так не стоит делать - fMain.StatusBar... а лучше завести строковое свойство в  fMain которому сие и присвоить?
+          { fMain.StatusBar1.SimpleText := 'Подключение выполнено. БД: ' +
+            Kernel.IBConnect.Database.DatabaseName // вывести имя базы }
+          fMain.StatusBarText := 'Подключение выполнено. БД: ' +
+            Kernel.IBConnect.Database.DatabaseName
+        else
+        { fMain.StatusBar1.SimpleText := 'Ошибка при подключении к БД ' +
+          Kernel.IBConnect.Database.DatabaseName;
+
+          fMain.StatusBarText := 'Ошибка при подключении к БД ' +
+          Kernel.IBConnect.Database.DatabaseName; }
+        begin
+          bOk.Enabled := false;
+          ShowMessage
+            ('Ошибка подключения к базе данных. Обратитесь к кому-нибудь');
+          Exit;
+          // Application.Terminate;
+        end;
+      finally
+        fIniFile.Free;
+      end
+    else
+    begin
+      // raise Exception.Create('Не найден файл config.ini'); - ругается, что неактивна транзакция + утечки памяти - почему...
+      bOk.Enabled := false;
+      ShowMessage('Ошибка подключения к базе данных. Обратитесь к кому-нибудь');
+      Exit; // т.о. не происходит запись в лог, хм... памятка: Exit does not violate the flow of control dictated by a try..finally construct; if Exit is called inside the try clause, the finally clause is still executed.
+      raise Exception.Create('Не найден файл config.ini');
+    end;
+    if Kernel.IBConnect.Connected then
+      Kernel.OnLog(Kernel.IBConnect, 'Подключение выполнено. БД: ' +
+        Kernel.IBConnect.Database.DatabaseName);
+  except
+    on E: Exception do
+      Kernel.OnLog(Self, E.Message);
+  end;
+
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPsnpForAutorization;
+  with cmbChoosePedagogue do
+  begin
+    Clear;
+    for i := 0 to PedagogueSurnameNP.Count - 1 do
+      Items.Add(PedagogueSurnameNP[i].ValueStrByName('SurnameNP'));
+    DropDownCount := PedagogueSurnameNP.Count + 1;
+    if cmbChoosePedagogue.Items.Count > 0 then
+      cmbChoosePedagogue.ItemIndex := 0;
+  end;
+
+end;
+
+procedure TfAutorization.OnlyOne;
+begin
+  CreateMutex(Nil, True, '999');
+  if GetLastError <> 0 then
+  begin
+    ShowMessage('Программа уже запущена!');
+    Halt;
+  end;
+end;
+
+end.

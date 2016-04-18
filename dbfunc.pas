@@ -1,0 +1,259 @@
+unit dbfunc;
+
+interface
+
+uses
+  Classes, SysUtils, IBX.IBDatabase, IBX.IBQuery, Variants;
+
+type
+
+  { TValueItem - вспомогательный класс, €вл€етс€ буфером дл€ значени€
+  одной €чеки из таблицы, хранит значение одного элемента}
+
+  TValueItem = class(TCollectionItem) // элемент коллекции
+  private
+    fValue: variant;
+  public
+    constructor Create(ACollection: TCollection); override;
+    property Value: variant read fValue write fValue;
+  end;
+
+  { TValues }
+
+  TValues = class(TCollection)
+  private
+    function GetItem(Index: integer): TValueItem;
+  public
+    constructor Create;
+    function Add: TValueItem;
+    property Items[Index: integer]: TValueItem read GetItem; default;
+  end;
+
+  { TResultItem }
+
+  TResultItem = class(TCollectionItem)
+  private
+    fValues: TValues;
+  public
+    constructor Create(ACollection: TCollection); override;
+    destructor Destroy; override;
+    function ValueByName(const aField: string): variant;
+    function ValueStrByName(const aField: string): string;
+    property Values: TValues read fValues;
+  end;
+
+  { TResultTable }
+
+  TResultTable = class(TCollection)
+  private
+    fFieldNames: TStrings;
+    function GetItem(Index: integer): TResultItem;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Add: TResultItem;
+    procedure ReadData(aQuery: TIBQuery);
+    property FieldNames: TStrings read fFieldNames;
+    property Items[Index: integer]: TResultItem read GetItem; default;
+  end;
+
+  function ExecSQL(aDB: TIBDatabase; aTrans: TIBTransaction; const aStr: string; const Args: array of variant): boolean;
+  function OpenSQL(aDB: TIBDatabase; aTrans: TIBTransaction; const aStr: string; const Args: array of variant): TResultTable;
+  procedure SetSQL(aQuery: TIBQuery; const aStr: string; const Args: array of variant);
+
+
+implementation
+
+function ExecSQL(aDB: TIBDatabase; aTrans: TIBTransaction; const aStr: string; const Args: array of variant): boolean;
+var
+  Query: TIBQuery;
+  i: integer;
+begin
+  Query := TIBQuery.Create(nil);
+  Result := True;
+  try
+    try
+      with Query do
+      begin
+        DataBase:=aDB;
+        if aTrans.Active then
+          aTrans.Active:=false;
+        aTrans.StartTransaction;
+        SQL.Text:=aStr;
+        Prepare;
+        for i:=low(Args) to high(Args) do
+          Params[i].Value:=Args[i];
+        ExecSQL;
+        aTrans.Commit;
+        Close;
+      end;
+    except
+      aTrans.Rollback;
+      Result:=false;
+    end;
+  finally
+    aTrans.Active:=false;
+    Query.Free;
+  end;
+end;
+
+function OpenSQL(aDB: TIBDatabase; aTrans: TIBTransaction; const aStr: string; const Args: array of variant): TResultTable;
+var
+  Query: TIBQuery;
+  i: integer;
+begin
+  Query := TIBQuery.Create(nil);
+  Result := TResultTable.Create;
+  try
+    try
+      with Query do
+      begin
+        DataBase:=aDB;
+        if aTrans.Active then
+          aTrans.Active:=false;
+        aTrans.StartTransaction;
+        SQL.Text:=aStr;
+        Prepare;
+        for i:=low(Args) to high(Args) do
+          Params[i].Value:=Args[i];
+        Open;
+        Result.ReadData(Query);
+        aTrans.Commit;
+        Close;
+      end;
+    except
+      aTrans.Rollback;
+    end;
+  finally
+    aTrans.Active:=false;
+    Query.Free;
+  end;
+end;
+
+procedure SetSQL(aQuery: TIBQuery; const aStr: string; const Args: array of variant);
+var
+  i: integer;
+begin
+  with aQuery do
+  begin
+    SQL.Text:=aStr;
+    Prepare;
+    for i:=low(Args) to high(Args) do
+      Params[i].Value:=Args[i];
+  end;
+end;
+
+{ TValueItem }
+
+constructor TValueItem.Create(ACollection: TCollection);
+begin
+  inherited Create(ACollection);
+  fValue:=varempty;
+end;
+
+{ TValues }
+
+function TValues.GetItem(Index: integer): TValueItem;
+begin
+  Result:=TValueItem(inherited GetItem(Index));
+end;
+
+constructor TValues.Create;
+begin
+  inherited Create(TValueItem);
+end;
+
+function TValues.Add: TValueItem;
+begin
+  Result:=TValueItem(inherited Add);
+end;
+
+{ TResultTable }
+
+function TResultTable.GetItem(Index: integer): TResultItem;
+begin
+  Result:=TResultItem(inherited GetItem(Index));
+end;
+
+constructor TResultTable.Create;
+begin
+  inherited Create(TResultItem);
+  fFieldNames:=TStringList.Create;
+end;
+
+destructor TResultTable.Destroy;
+begin
+  fFieldNames.Free;
+  inherited Destroy;
+end;
+
+function TResultTable.Add: TResultItem;
+begin
+  Result:=TResultItem(inherited Add);
+end;
+
+procedure TResultTable.ReadData(aQuery: TIBQuery);
+var
+  i: integer;
+begin
+  Clear;
+  with aQuery do
+  begin
+    for i:=0 to FieldDefs.Count-1 do
+      fFieldNames.Add(FieldDefs[i].Name);
+    First;
+    while not Eof do
+    with Add do
+    begin
+      for i:=0 to fFieldNames.Count-1 do
+        Values.Add.Value:=FieldByName(fFieldNames[i]).Value;
+      Next;
+    end;
+  end;
+end;
+
+{ TResultItem }
+
+constructor TResultItem.Create(ACollection: TCollection);
+begin
+  inherited Create(ACollection);
+  fValues:=TValues.Create;
+end;
+
+destructor TResultItem.Destroy;
+begin
+  fValues.Free;
+  inherited Destroy;
+end;
+
+function TResultItem.ValueByName(const aField: string): variant;
+var
+  i: integer;
+begin
+  Result:=varempty;
+  with (Collection as TResultTable) do
+  for i:=0 to fFieldNames.Count-1 do
+    if UpperCase(fFieldNames[i])=UpperCase(aField) then
+      begin
+        Result:=fValues[i].Value;
+        Break;
+      end;
+end;
+
+function TResultItem.ValueStrByName(const aField: string): string;
+var
+  i: integer;
+begin
+  Result:='';
+  with (Collection as TResultTable) do
+  for i:=0 to fFieldNames.Count-1 do
+    if UpperCase(fFieldNames[i])=UpperCase(aField) then
+      begin
+        if not VarIsEmpty(fValues[i].Value) and not VarIsNull(fValues[i].Value) then
+          Result:=string(fValues[i].Value);
+        Break;
+      end;
+end;
+
+end.
+

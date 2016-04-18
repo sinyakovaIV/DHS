@@ -1,0 +1,282 @@
+unit frmReport_PedWorkLoad;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, dbfunc, uKernel, Winapi.ActiveX, ComObj,
+  Vcl.OleServer, Vcl.ComCtrls;
+
+type
+  TfReport_PedWorkLoad = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label3: TLabel;
+    cmbChooseAcademicYear: TComboBox;
+    cmbChoosePedagogue: TComboBox;
+    bExportToExcel: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    DateTimePicker1: TDateTimePicker;
+    Label2: TLabel;
+    Memo1: TMemo;
+    procedure Button3Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure bExportToExcelClick(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    ByGroupChild: TResultTable;
+    FIDPedagogue: integer;
+    FIDCurAcademicYear: integer;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDCurAcademicYear(const Value: integer);
+
+    function CheckExcelInstalled(AValue: String): boolean;
+    function CheckExcelRun(AValue: String; var ADest: Variant): boolean;
+
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+  end;
+
+var
+  fReport_PedWorkLoad: TfReport_PedWorkLoad;
+
+implementation
+
+{$R *.dfm}
+// var
+// ExcelApp: Variant;
+// WorkBook: Variant;
+
+procedure TfReport_PedWorkLoad.bExportToExcelClick(Sender: TObject);
+var
+  ExcelFileName, PedSurname, CurAcademicYear, sline: string;
+  ExcelApp, Sheet, WorkBook: Variant;
+  // mem: TMemo;
+  i: integer;
+begin
+  if not CheckExcelInstalled('Excel.Application') then
+    Application.MessageBox(PChar('Необходимо установить Microsoft Excel.'),
+      'Ошибка', MB_ICONERROR);
+
+  try
+    if not CheckExcelRun('Excel.Application', ExcelApp) then
+      ExcelApp := CreateOleObject('Excel.Application');
+    ExcelApp.Visible := false;
+    ExcelApp.Application.EnableEvents := false;
+
+    ExcelApp.SheetsInNewWorkbook := 1;
+    WorkBook := ExcelApp.Workbooks.Add;
+    Sheet := ExcelApp.Workbooks[1].WorkSheets[1];
+    // ExcelApp.Workbooks[1].WorkSheets[1].Name := 'bh';
+
+    PedSurname := ' ' + PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex]
+      .ValueStrByName('SURNAMENP');
+    CurAcademicYear := AcademicYear[cmbChooseAcademicYear.ItemIndex]
+      .ValueStrByName('NAME');
+    // Колонтитулы
+    Sheet.PageSetup.CenterHeader :=
+      '&14ДХС "Надежда"                                         Педагог: &B ' +
+      PedSurname + #13 + '&BНагрузка на &B' + CurAcademicYear +
+      '&B учебный год          ';
+    Sheet.PageSetup.CenterFooter :=
+      '&10Дата формирования отчета о нагрузке: &14 &B' +
+      DateToStr(DateTimePicker1.Date) + '&B  _____________ Подпись';
+
+    // отображение листа в виде "разметка страницы"
+    // обещанные ни xlPageLayoutView ни xlPageBreakPreview не работают
+    // константу '3' выудила поредством записи макроса в Excel'е
+    ExcelApp.ActiveWindow.View := 3;
+
+    // Отступы
+    Sheet.PageSetup.TopMargin := 70;
+
+    ExcelApp.Workbooks[1].WorkSheets[1].Cells[1, 1] := 'По группам / учащимся';
+
+    // mem := TMemo.Create(Self) ;
+    // mem := TMemo.Create(loginform) ;
+    // mem.Visible := false;
+    // mem.Parent := loginform;
+    // mem.Clear; // видимо родитель был чем-то забит
+
+    // mem.lines.Add('');
+    sline := 'Группа / Учащийся' + #9 + 'Программа' + #9 + 'Уровень' + #9 +
+      'Часов' + #9 + 'Форма обучения' + #9 + 'Статус';
+    // mem.Lines.Add(sline);
+
+    Memo1.Lines.Add('');
+    Memo1.Lines.Add(sline);
+
+    if Assigned(ByGroupChild) then
+      FreeAndNil(ByGroupChild);
+    // в отчете нагрузки не должно быть отчисленных и подумать насчет типа учебной группы - все выводить или нет...
+    ByGroupChild := Kernel.GetLearningGroupList(0, IDPedagogue,
+      IDCurAcademicYear, 0, 0);
+    // (education_program, pedagogue, academic_year, learning_group_type, status)
+
+    for i := 0 to ByGroupChild.Count - 1 do
+    begin
+      sline := '';
+      sline := ByGroupChild[i].ValueStrByName('NAME') + #9 + ByGroupChild[i]
+        .ValueStrByName('EDUCATION_PROGRAM') + #9 + ByGroupChild[i]
+        .ValueStrByName('LEARNING_LEVEL') + #9 + IntToStr(ByGroupChild[i]
+        .ValueByName('WEEK_AMOUNT_HOURS')) + #9 + ByGroupChild[i].ValueStrByName
+        ('LEARNING_GROUP_TYPE') + #9 + ByGroupChild[i].ValueStrByName
+        ('STATUS_GROUP');
+      // mem.Lines.Add(sline);
+      Memo1.Lines.Add(sline);
+    end;
+
+    ExcelApp.WorkBooks[1].WorkSheets[1].Columns[1].ColumnWidth:= 20;
+    ExcelApp.WorkBooks[1].WorkSheets[1].Columns[2].ColumnWidth:= 11;
+    ExcelApp.WorkBooks[1].WorkSheets[1].Columns[3].ColumnWidth:= 7;
+    ExcelApp.WorkBooks[1].WorkSheets[1].Columns[4].ColumnWidth:= 5;
+    ExcelApp.WorkBooks[1].WorkSheets[1].Columns[5].ColumnWidth:= 17;
+    ExcelApp.WorkBooks[1].WorkSheets[1].Columns[6].ColumnWidth:= 9;
+
+//    ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Select;
+//    ExcelApp.Selection.Borders[xlInsideHorizontal].linestyle:=xlContinuous;
+
+//    ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Borders[xlInsideHorizontal].linestyle:=xlContinuous;
+//    ExcelApp.ActiveWorkBook.ActiveSheet.range['A2:F9'].Borders[xlInsideHorizontal].linestyle:=1;
+//    ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlInsideVertical].linestyle:=1 ;
+//    ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeBottom].linestyle:=1;
+//    ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeLeft].linestyle:=1;
+//    ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeRight].linestyle:=1;
+//    ExcelApp.ActiveWorkBook.ActiveSheet.UsedRange.Borders[xlEdgeTop].linestyle:=1;
+
+//    mem.SelectAll;
+//    mem.CopyToClipboard;
+    Memo1.SelectAll;
+    Memo1.CopyToClipboard;
+    ExcelApp.Workbooks[1].WorkSheets[1].Paste;
+//    mem.Destroy;
+
+    // формирую имя будущего файла
+    Delete(PedSurname, Length(PedSurname) - 4, 5);
+    ExcelFileName := CurAcademicYear + PedSurname + ' - нагрузка от ' +
+      FormatDateTime('dd mm', DateTimePicker1.Date);
+    // если файл уже существует и отказаться его перезаписать, то исключение!!!
+    // WorkBook.SaveAs(ExtractFilePath(Application.ExeName) + ExcelFileName);
+    WorkBook.SaveAs(ExtractFilePath(ParamStr(0)) + ExcelFileName);
+    // потом сделать проверку на сущ. файла и пусь пользователь
+    // решает, что с ним делать посредством диалога
+    // и еще, почему "Вместо Application.ExeName лучше использовать ParamStr(0)"
+
+//    ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Select;
+
+    ExcelApp.Visible := true;
+
+  finally
+    {
+      // Если переменная не пустая, то...
+      if not VarIsEmpty(ExcelApp) then
+      begin
+      // ...отключаем диалог с вопросом сохранять ли файл при выходе или нет
+      ExcelApp.DisplayAlerts := false;
+      // Закрываем Excel
+      ExcelApp.Quit;
+      // Присваиваем неопределенный тип, освобождая при этом
+      // процесс excel.exe, чтобы он мог завершиться. Если этого не
+      // сделать, то процесс останется висеть в памяти.
+      ExcelApp := Unassigned;
+      WorkBook := Unassigned;
+      Sheet := Unassigned;
+      end;
+    }
+  end;
+
+end;
+
+procedure TfReport_PedWorkLoad.Button3Click(Sender: TObject);
+begin
+  Close;
+end;
+
+function TfReport_PedWorkLoad.CheckExcelInstalled(AValue: String): boolean;
+var
+  FCLSID: TCLSID;
+begin
+  Result := (CLSIDFromProgID(PChar(AValue), FCLSID) = S_OK);
+end;
+
+function TfReport_PedWorkLoad.CheckExcelRun(AValue: String;
+  var ADest: Variant): boolean;
+begin
+  try
+    ADest := GetActiveOleObject(AValue);
+    Result := true;
+  except
+    Result := false;
+  end;
+end;
+
+procedure TfReport_PedWorkLoad.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+  ByGroupChild := nil;
+end;
+
+procedure TfReport_PedWorkLoad.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(ByGroupChild) then
+    FreeAndNil(ByGroupChild);
+end;
+
+procedure TfReport_PedWorkLoad.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  with cmbChoosePedagogue do
+  begin
+    Clear;
+    for i := 0 to PedagogueSurnameNP.Count - 1 do
+      Items.Add(PedagogueSurnameNP[i].ValueStrByName('SurnameNP'));
+    DropDownCount := PedagogueSurnameNP.Count + 1;
+    for i := 0 to PedagogueSurnameNP.Count - 1 do
+      if PedagogueSurnameNP[i].ValueByName('ID_OUT') = IDPedagogue then
+        cmbChoosePedagogue.ItemIndex := i;
+    // cmbChoosePedagogue.ItemIndex := 0;
+  end;
+
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  with cmbChooseAcademicYear do
+  begin
+    Clear;
+    for i := 0 to AcademicYear.Count - 1 do
+      Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+    DropDownCount := AcademicYear.Count + 1;
+    for i := 0 to AcademicYear.Count - 1 do
+      if AcademicYear[i].ValueByName('ID') = IDCurAcademicYear then
+        cmbChooseAcademicYear.ItemIndex := i;
+    // cmbChooseAcademicYear.ItemIndex := 0;
+  end;
+end;
+
+procedure TfReport_PedWorkLoad.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+procedure TfReport_PedWorkLoad.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+end.

@@ -1,0 +1,52 @@
+unit frmRealizationVolume;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfRealizationVolume = class(TForm)
+    Panel1: TPanel;
+    Label3: TLabel;
+    Label1: TLabel;
+    cmbPedagogue: TComboBox;
+    cmbEducationProgram: TComboBox;
+    RadioGroup1: TRadioGroup;
+    RadioGroup3: TRadioGroup;
+    ComboBox1: TComboBox;
+    Label2: TLabel;
+    PageControl1: TPageControl;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    TabSheet3: TTabSheet;
+    TabSheet4: TTabSheet;
+    lvPedagogueByMonth2: TListView;
+    lvPedagogueByMonth1: TListView;
+    ListView1: TListView;
+    ListView2: TListView;
+    ListView4: TListView;
+    Button1: TButton;
+    lvPedagogueByYear1: TListView;
+    procedure Button1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  fRealizationVolume: TfRealizationVolume;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfRealizationVolume.Button1Click(Sender: TObject);
+begin
+  lvPedagogueByYear1.Columns[13].Width := 50;
+end;
+
+end.

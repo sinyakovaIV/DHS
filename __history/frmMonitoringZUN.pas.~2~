@@ -1,0 +1,84 @@
+unit frmMonitoringSUN;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.StdCtrls, dbfunc, uKernel, Vcl.Mask;
+
+type
+  TfMonitoringSUN = class(TForm)
+    Panel1: TPanel;
+    Label3: TLabel;
+    Label1: TLabel;
+    cmbPedagogue: TComboBox;
+    cmbAcademicYear: TComboBox;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  private
+    PedagogueSurnameNP: TResultTable;
+    AcademicYear: TResultTable;
+    FIDPedagogue: integer;
+    FIDCurAcademicYear: integer;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDCurAcademicYear(const Value: integer);
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+  end;
+
+var
+  fMonitoringSUN: TfMonitoringSUN;
+
+implementation
+
+{$R *.dfm}
+
+{ TForm1 }
+
+procedure TfMonitoringSUN.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+end;
+
+procedure TfMonitoringSUN.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+end;
+
+procedure TfMonitoringSUN.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true,
+    'ID', IDCurAcademicYear);
+
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP,
+    'SurnameNP', false);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+end;
+
+procedure TfMonitoringSUN.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+procedure TfMonitoringSUN.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+end.

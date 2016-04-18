@@ -1,0 +1,101 @@
+unit frmRealizationVolume;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfRealizationVolume = class(TForm)
+    Panel1: TPanel;
+    Label3: TLabel;
+    Label1: TLabel;
+    cmbPedagogue: TComboBox;
+    cmbAcademicYear: TComboBox;
+    rgChoosePeriod: TRadioGroup;
+    PageControl1: TPageControl;
+    tsPedagogueByMonth_1: TTabSheet;
+    tsPedagogueByYear_2: TTabSheet;
+    tsDHSByMonth_3: TTabSheet;
+    tsDHSByYear_4: TTabSheet;
+    lvPedagogueByMonth2: TListView;
+    lvPedagogueByMonth1: TListView;
+    lvDHSByMonth1: TListView;
+    lvDHSByMonth2: TListView;
+    lvPedagogueByYear2: TListView;
+    lvPedagogueByYear1: TListView;
+    lvDHSByYear1: TListView;
+    lvDHSByYear2: TListView;
+    Button1: TButton;
+    procedure Button1Click(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    FIDPedagogue: integer;
+    FIDAcademicYear: integer;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fRealizationVolume: TfRealizationVolume;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfRealizationVolume.Button1Click(Sender: TObject);
+begin
+  lvPedagogueByYear1.Columns[13].Width := 50;
+end;
+
+procedure TfRealizationVolume.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+end;
+
+procedure TfRealizationVolume.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+end;
+
+procedure TfRealizationVolume.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', false);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+end;
+
+procedure TfRealizationVolume.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfRealizationVolume.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+end.

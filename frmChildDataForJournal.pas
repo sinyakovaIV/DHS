@@ -1,0 +1,177 @@
+unit frmChildDataForJournal;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfChildDataForJournal = class(TForm)
+    GroupBox1: TGroupBox;
+    Label2: TLabel;
+    Label3: TLabel;
+    cmbEducationProgram: TComboBox;
+    cmbPedagogue: TComboBox;
+    Label4: TLabel;
+    cmbAcademicYear: TComboBox;
+    lvChildList: TListView;
+    ListBox1: TListBox;
+    Label1: TLabel;
+    bClear: TButton;
+    bAdd: TButton;
+    GroupBox2: TGroupBox;
+    RadioGroup1: TRadioGroup;
+    cmbLearningGroup: TComboBox;
+    bExport: TButton;
+    bClose: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure RadioGroup1Click(Sender: TObject);
+    procedure cmbLearningGroupChange(Sender: TObject);
+    procedure cmbEducationProgramChange(Sender: TObject);
+    procedure cmbPedagogueChange(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    EducationProgram: TResultTable;
+    LearningGroup: TResultTable;
+    ChildList: TResultTable;
+    FIDPedagogue: integer;
+    FIDAcademicYear: integer;
+    id_program, id_group: integer;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+    procedure ShowChildList;
+
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fChildDataForJournal: TfChildDataForJournal;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfChildDataForJournal.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfChildDataForJournal.cmbEducationProgramChange(Sender: TObject);
+begin
+  ShowChildList;
+end;
+
+procedure TfChildDataForJournal.cmbLearningGroupChange(Sender: TObject);
+begin
+  ShowChildList;
+end;
+
+procedure TfChildDataForJournal.cmbPedagogueChange(Sender: TObject);
+begin
+  ShowChildList;
+end;
+
+procedure TfChildDataForJournal.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+  EducationProgram := nil;
+  LearningGroup := nil;
+  ChildList := nil;
+end;
+
+procedure TfChildDataForJournal.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(EducationProgram) then
+    FreeAndNil(EducationProgram);
+  if Assigned(LearningGroup) then
+    FreeAndNil(LearningGroup);
+  if Assigned(ChildList) then
+    FreeAndNil(ChildList);
+end;
+
+procedure TfChildDataForJournal.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', false);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+  if not Assigned(EducationProgram) then
+    EducationProgram := Kernel.GetEducationProgram;
+  Kernel.FillingComboBox(cmbEducationProgram, EducationProgram, 'NAME', true);
+  cmbEducationProgram.ItemIndex := 0;
+  ShowChildList;
+end;
+
+procedure TfChildDataForJournal.RadioGroup1Click(Sender: TObject);
+var
+  id_learning_form, id_status: integer;
+begin
+  id_learning_form := 1; // только "группуовые группы"
+  id_status := 0; // все группы
+  if RadioGroup1.ItemIndex = 0 then
+    if Assigned(LearningGroup) then
+      FreeAndNil(LearningGroup);
+  LearningGroup := Kernel.GetLearningGroupName(id_program, IDPedagogue,
+    IDAcademicYear, id_learning_form, id_status);
+  Kernel.FillingComboBox(cmbLearningGroup, LearningGroup, 'NAME', false);
+  cmbLearningGroup.ItemIndex := 0;
+end;
+
+procedure TfChildDataForJournal.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfChildDataForJournal.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfChildDataForJournal.ShowChildList;
+begin
+  if cmbEducationProgram.ItemIndex = 0 then
+    id_program := 0
+  else
+    id_program := EducationProgram[cmbEducationProgram.ItemIndex - 1]
+      .ValueByName('ID');
+  if RadioGroup1.ItemIndex = 1 then
+    id_group := LearningGroup[cmbLearningGroup.ItemIndex].ValueByName('ID')
+    else
+    id_group := 0;
+  IDPedagogue := PedagogueSurnameNP[cmbPedagogue.ItemIndex].ValueByName('ID_OUT');
+  if Assigned(ChildList) then
+    FreeAndNil(ChildList);
+  ChildList := Kernel.GetChildData(id_program, IDPedagogue, IDAcademicYear, id_group);
+  Kernel.GetLVChildData(lvChildList, ChildList);
+  if lvChildList.Items.Count > 0 then
+  begin
+    lvChildList.ItemIndex := 0;
+    bAdd.Enabled := true;
+  end
+  else
+    bAdd.Enabled := false;
+end;
+
+end.

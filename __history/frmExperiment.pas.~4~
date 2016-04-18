@@ -1,0 +1,90 @@
+unit frmExperiment;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ComCtrls, Vcl.StdCtrls, dbfunc, uKernel;
+
+type
+//  FuncRT = function: TResultTable
+//  var Func: function
+
+  TfExperiment = class(TForm)
+
+    ComboBox1: TComboBox;
+    ComboBox2: TComboBox;
+    ListView1: TListView;
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+
+  private
+    AcademicYear: TResultTable;
+    FIDCurAcademicYear: integer;
+    procedure SetIDCurAcademicYear(const Value: integer);
+    procedure FillingComboBox(const cmbName: TComboBox;
+      const RTName: TResultTable; const Func: TNotifyEvent; const FieldName: string;
+      const Line_All: Boolean);
+  public
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+  end;
+
+var
+  fExperiment: TfExperiment;
+
+implementation
+
+{$R *.dfm}
+
+  { TfExperiment }
+
+procedure TfExperiment.FillingComboBox(const cmbName: TComboBox;
+  const RTName: TResultTable; const Func: FuncRT{TNotifyEvent}; const FieldName: string;
+  const Line_All: Boolean);
+var
+  i: integer;
+begin
+  if not Assigned(RTName) then
+    RTName := Func;
+  with cmbName do
+  begin
+    Clear;
+    if Line_All then
+    begin
+      Items.Add('Все');
+      DropDownCount := RTName.Count + 1;
+    end
+    else
+      DropDownCount := RTName.Count;
+    for i := 0 to RTName.Count - 1 do
+      Items.Add(RTName[i].ValueStrByName(FieldName));
+  end;
+end;
+
+procedure TfExperiment.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+end;
+
+procedure TfExperiment.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+end;
+
+procedure TfExperiment.FormShow(Sender: TObject);
+begin
+  FillingComboBox(ComboBox1, AcademicYear, Kernel.GetAcademicYear,
+    'NAME', true);
+end;
+
+procedure TfExperiment.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+end.

@@ -1,0 +1,29 @@
+unit frmReportExp;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, frxClass,
+  frxDBSet, {frxClass,} dbfunc, uKernel, Data.DB, IBCustomDataSet, frxPreview;
+
+type
+  TfReportExp = class(TForm)
+    frxReport1: TfrxReport;
+    frxDBDataset1: TfrxDBDataset;
+    frxPreview1: TfrxPreview;
+    IBDataSet1: TIBDataSet;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  fReportExp: TfReportExp;
+
+implementation
+
+{$R *.dfm}
+
+end.

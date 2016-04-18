@@ -1,0 +1,166 @@
+unit frmRealizationVolume;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask, Vcl.ComCtrls, dbfunc, uKernel,
+  DateUtils;
+
+type
+  TfRealizationVolume = class(TForm)
+    Panel1: TPanel;
+    Label3: TLabel;
+    Label1: TLabel;
+    cmbPedagogue: TComboBox;
+    cmbAcademicYear: TComboBox;
+    rgChoosePeriod: TRadioGroup;
+    PageControl1: TPageControl;
+    tsPedagogueByMonth_1: TTabSheet;
+    tsPedagogueByYear_2: TTabSheet;
+    tsDHSByMonth_3: TTabSheet;
+    tsDHSByYear_4: TTabSheet;
+    lvPedagogueByMonth2: TListView;
+    lvPedagogueByMonth1: TListView;
+    lvDHSByMonth1: TListView;
+    lvDHSByMonth2: TListView;
+    lvPedagogueByYear2: TListView;
+    lvPedagogueByYear1: TListView;
+    lvDHSByYear1: TListView;
+    lvDHSByYear2: TListView;
+    Button1: TButton;
+    Label2: TLabel;
+    cbMonth: TComboBox;
+    procedure Button1Click(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure cmbPedagogueChange(Sender: TObject);
+    procedure cmbAcademicYearChange(Sender: TObject);
+    procedure cbMonthChange(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    RTPedagogueByMonth1, RTPedagogueByMonth2: TResultTable;
+    RTdhsByMonth1, RTdhsSByMonth2: TResultTable;
+    FIDPedagogue: integer;
+    FIDAcademicYear: integer;
+    MonthNumber: integer;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+    procedure ShowPedagogueByMonth;
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fRealizationVolume: TfRealizationVolume;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfRealizationVolume.Button1Click(Sender: TObject);
+begin
+  lvPedagogueByYear1.Columns[13].Width := 50;
+end;
+
+procedure TfRealizationVolume.cbMonthChange(Sender: TObject);
+begin
+  if cbMonth.ItemIndex <= 3 then
+    MonthNumber := cbMonth.ItemIndex + 9
+  else
+    MonthNumber := cbMonth.ItemIndex - 3;
+end;
+
+procedure TfRealizationVolume.cmbAcademicYearChange(Sender: TObject);
+begin
+  IDAcademicYear := AcademicYear[cmbAcademicYear.ItemIndex].ValueByName('ID');
+end;
+
+procedure TfRealizationVolume.cmbPedagogueChange(Sender: TObject);
+begin
+  IDPedagogue := PedagogueSurnameNP[cmbPedagogue.ItemIndex].ValueByName
+    ('ID_OUT');
+end;
+
+procedure TfRealizationVolume.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+  RTPedagogueByMonth1 := nil;
+  RTPedagogueByMonth2 := nil;
+  RTdhsByMonth1 := nil;
+  RTdhsSByMonth2 := nil;
+
+end;
+
+procedure TfRealizationVolume.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(RTPedagogueByMonth1) then
+    FreeAndNil(RTPedagogueByMonth1);
+  if Assigned(RTPedagogueByMonth2) then
+    FreeAndNil(RTPedagogueByMonth2);
+  if Assigned(RTdhsByMonth1) then
+    FreeAndNil(RTdhsByMonth1);
+  if Assigned(RTdhsSByMonth2) then
+    FreeAndNil(RTdhsSByMonth2);
+end;
+
+procedure TfRealizationVolume.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', false);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+// определ€ю текущий мес€ц и в зависимости от е€ выбираю строку в cb
+  MonthNumber := MonthOf(Now);
+  if (MonthNumber <= 5) or (MonthNumber >= 9) then
+    if MonthNumber >= 9 then
+      cbMonth.ItemIndex := MonthNumber - 9
+    else if MonthNumber <= 5 then
+      cbMonth.ItemIndex := MonthNumber + 3
+    else
+      cbMonth.ItemIndex := 8;
+
+  ShowPedagogueByMonth;
+end;
+
+procedure TfRealizationVolume.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfRealizationVolume.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfRealizationVolume.ShowPedagogueByMonth;
+begin
+  if Assigned(RTPedagogueByMonth1) then
+    FreeAndNil(RTPedagogueByMonth1);
+//  RTPedagogueByMonth1 := Kernel.GetVolumeRealByMonthPed(IDPedagogue,
+//    IDAcademicYear, 0, MonthNumber);
+
+  if Assigned(RTPedagogueByMonth2) then
+    FreeAndNil(RTPedagogueByMonth2);
+
+end;
+
+end.

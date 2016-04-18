@@ -1,0 +1,248 @@
+unit frmContingentSafety;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.StdCtrls, dbfunc, uKernel, Vcl.Mask,
+  DateUtils;
+
+type
+  TfContingentSafety = class(TForm)
+    Panel1: TPanel;
+    Label3: TLabel;
+    Label1: TLabel;
+    cmbPedagogue: TComboBox;
+    cmbAcademicYear: TComboBox;
+    Label2: TLabel;
+    cmbEducationProgram: TComboBox;
+    cmbLearningLevel: TComboBox;
+    Label6: TLabel;
+    PageControl1: TPageControl;
+    TabSheet1: TTabSheet;
+    Panel2: TPanel;
+    lvInlist: TListView;
+    Panel3: TPanel;
+    cmbOrderOut: TComboBox;
+    bOutGroup: TButton;
+    Panel4: TPanel;
+    Panel5: TPanel;
+    lvOut: TListView;
+    Panel6: TPanel;
+    lvContingentSafety: TListView;
+    TabSheet2: TTabSheet;
+    Panel8: TPanel;
+    lvListActualContingent: TListView;
+    ComboBox1: TComboBox;
+    Button1: TButton;
+    Panel10: TPanel;
+    Panel11: TPanel;
+    ListView2: TListView;
+    Panel7: TPanel;
+    lvActualContingent: TListView;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure cmbPedagogueChange(Sender: TObject);
+    procedure cmbEducationProgramChange(Sender: TObject);
+    procedure cmbLearningLevelChange(Sender: TObject);
+    procedure lvActualContingentColumnClick(Sender: TObject;
+      Column: TListColumn);
+  private
+    PedagogueSurnameNP: TResultTable;
+    AcademicYear: TResultTable;
+    EducationProgram: TResultTable;
+    LearningLevel: TResultTable;
+    OutOrderList: TResultTable;
+    ChildInList: TResultTable; // сохранность контингента
+    ChildOut: TResultTable; // сохранность контингента
+    ReportSafety: TResultTable; // отчет о сохраности
+    ActualContingent: TResultTable; // фактический список детей
+    ReportActual: TResultTable; // отчет о фактическом списке
+
+    in_id_education_program, in_id_learning_level, in_status,
+      number_report: integer;
+    FIDPedagogue: integer;
+    FIDCurAcademicYear: integer;
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDCurAcademicYear(const Value: integer);
+    procedure ShowContingentSafety;
+    procedure ShowActualContingent;
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+  end;
+
+var
+  fContingentSafety: TfContingentSafety;
+
+implementation
+
+{$R *.dfm}
+{ TForm1 }
+
+procedure TfContingentSafety.cmbEducationProgramChange(Sender: TObject);
+begin
+  if cmbEducationProgram.ItemIndex = 0 then
+    in_id_education_program := 0
+  else
+    in_id_education_program := EducationProgram
+      [cmbEducationProgram.ItemIndex - 1].ValueByName('ID');
+  ShowContingentSafety;
+  ShowActualContingent;
+end;
+
+procedure TfContingentSafety.cmbLearningLevelChange(Sender: TObject);
+begin
+  if cmbLearningLevel.ItemIndex = 0 then
+    in_id_learning_level := 0
+  else
+    in_id_learning_level := LearningLevel[cmbLearningLevel.ItemIndex - 1]
+      .ValueByName('ID');
+  ShowContingentSafety;
+  ShowActualContingent;
+end;
+
+procedure TfContingentSafety.cmbPedagogueChange(Sender: TObject);
+begin
+  if cmbPedagogue.ItemIndex = 0 then
+    IDPedagogue := 0
+  else
+    IDPedagogue := PedagogueSurnameNP[cmbPedagogue.ItemIndex - 1]
+      .ValueByName('ID_OUT');
+  ShowContingentSafety;
+  ShowActualContingent;
+end;
+
+procedure TfContingentSafety.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+  EducationProgram := nil;
+  LearningLevel := nil;
+  OutOrderList := nil;
+  ChildInList := nil;
+  ChildOut := nil;
+  ReportSafety := nil;
+  ActualContingent := nil;
+  ReportActual := nil;
+end;
+
+procedure TfContingentSafety.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(EducationProgram) then
+    FreeAndNil(EducationProgram);
+  if Assigned(LearningLevel) then
+    FreeAndNil(LearningLevel);
+  if Assigned(OutOrderList) then
+    FreeAndNil(OutOrderList);
+  if Assigned(ChildInList) then
+    FreeAndNil(ChildInList);
+  if Assigned(ChildOut) then
+    FreeAndNil(ChildOut);
+  if Assigned(ReportSafety) then
+    FreeAndNil(ReportSafety);
+  if Assigned(ActualContingent) then
+    FreeAndNil(ActualContingent);
+  if Assigned(ReportActual) then
+    FreeAndNil(ReportActual);
+end;
+
+procedure TfContingentSafety.FormShow(Sender: TObject);
+begin
+  if MonthOf(Now) < 9 then
+    number_report := 3;
+
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDCurAcademicYear);
+
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', true);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+
+  if not Assigned(EducationProgram) then
+    EducationProgram := Kernel.GetEducationProgram;
+  Kernel.FillingComboBox(cmbEducationProgram, EducationProgram, 'NAME', true);
+  cmbEducationProgram.ItemIndex := 0;
+
+  if not Assigned(LearningLevel) then
+    LearningLevel := Kernel.GetLearningLevel;
+  Kernel.FillingComboBox(cmbLearningLevel, LearningLevel, 'NAME', true);
+  cmbLearningLevel.ItemIndex := 0;
+
+  if not Assigned(OutOrderList) then
+    OutOrderList := Kernel.GetInOutOrderList(0, 2);
+  Kernel.FillingComboBox(cmbOrderOut, OutOrderList, 'NUMBER_DATES_NAME', false);
+  cmbOrderOut.ItemIndex := 0;
+
+  ShowContingentSafety;
+  ShowActualContingent;
+end;
+
+procedure TfContingentSafety.lvActualContingentColumnClick(Sender: TObject;
+  Column: TListColumn);
+begin
+//  number_report := Column.Index;
+//  ShowActualContingent(number_report);
+end;
+
+procedure TfContingentSafety.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+procedure TfContingentSafety.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfContingentSafety.ShowActualContingent;
+begin
+  if cmbEducationProgram.ItemIndex = 0 then
+    in_id_education_program := 0
+  else
+    in_id_education_program := EducationProgram
+      [cmbEducationProgram.ItemIndex - 1].ValueByName('ID');
+
+  IDCurAcademicYear := AcademicYear[cmbAcademicYear.ItemIndex]
+    .ValueByName('ID');
+
+  if Assigned(ActualContingent) then
+    FreeAndNil(ActualContingent);
+  ActualContingent := Kernel.GetActualContingent(IDPedagogue, IDCurAcademicYear,
+    in_id_education_program);
+  Kernel.GetLVActualContingent(lvListActualContingent, ActualContingent);
+
+end;
+
+procedure TfContingentSafety.ShowContingentSafety;
+begin
+  if Assigned(ChildInList) then
+    FreeAndNil(ChildInList);
+  // входные параметры для хранимки
+  // in_id_pedagogue, in_id_academic_year, in_id_education_program, in_id_learning_level, in_status: integer;
+  ChildInList := Kernel.GetChildListForContingent(IDPedagogue,
+    IDCurAcademicYear, in_id_education_program, in_id_learning_level, 1);
+  Kernel.GetLVContingentInList(lvInlist, ChildInList);
+
+  if Assigned(ChildOut) then
+    FreeAndNil(ChildOut);
+  ChildOut := Kernel.GetChildListForContingent(IDPedagogue, IDCurAcademicYear,
+    in_id_education_program, in_id_learning_level, 2);
+  Kernel.GetLVContingentOut(lvOut, ChildOut);
+end;
+
+end.

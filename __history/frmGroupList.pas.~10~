@@ -1,0 +1,127 @@
+unit frmGroupList;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfGroupList = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    cmbChooseAcademicYear: TComboBox;
+    cmbChooseAducationProgram: TComboBox;
+    cmbChoosePedagogue: TComboBox;
+    cmbChooseStatus: TComboBox;
+    lvLearningGroup: TListView;
+    Panel1: TPanel;
+    Label5: TLabel;
+    cmbName: TComboBox;
+    Label6: TLabel;
+    cmbLearningLevel: TComboBox;
+    Label7: TLabel;
+    cmbAducationProgram: TComboBox;
+    Label8: TLabel;
+    cmbHoursAmount: TComboBox;
+    Label9: TLabel;
+    cmbPedagogue: TComboBox;
+    Label10: TLabel;
+    cmbAcademicYear: TComboBox;
+    Label11: TLabel;
+    cmbStatus: TComboBox;
+    bNewRecord: TButton;
+    bSave: TButton;
+    Button3: TButton;
+    procedure Button3Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    EducationProgram: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    StatusLearningGroup: TResultTable;
+  public
+    { Public declarations }
+  end;
+
+var
+  fGroupList: TfGroupList;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfGroupList.Button3Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfGroupList.FormCreate(Sender: TObject);
+begin
+    AcademicYear := nil;
+    EducationProgram := nil;
+    PedagogueSurnameNP := nil;
+    StatusLearningGroup := nil;
+end;
+
+procedure TfGroupList.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(EducationProgram) then
+    FreeAndNil(EducationProgram);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(StatusLearningGroup) then
+    FreeAndNil(StatusLearningGroup);
+end;
+
+procedure TfGroupList.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  with cmbChooseAcademicYear do
+  begin
+    Clear;
+    for i := 0 to AcademicYear.Count - 1 do
+      Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+  end;
+
+  if not Assigned(EducationProgram) then
+    EducationProgram := Kernel.GetEducationProgram;
+  with cmbChooseAducationProgram do
+  begin
+    Clear;
+    for i := 0 to EducationProgram.Count - 1 do
+      Items.Add(EducationProgram[i].ValueStrByName('NAME'));
+  end;
+   {
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  with cmbChoosePedagogue do
+  begin
+    Clear;
+    for i := 0 to PedagogueSurnameNP.Count - 1 do
+      Items.Add(PedagogueSurnameNP[i].ValueStrByName('???NAME'));
+  end;  }
+
+  if not Assigned(StatusLearningGroup) then
+    StatusLearningGroup := Kernel.GetStatusLearningGroup(3);
+  with cmbChoosePedagogue do
+  begin
+    Clear;
+    for i := 0 to StatusLearningGroup.Count - 1 do
+      Items.Add(StatusLearningGroup[i].ValueStrByName('NOTE'));
+  end;
+
+end;
+
+end.

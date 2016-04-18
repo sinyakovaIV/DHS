@@ -1,0 +1,54 @@
+object fSickLeave: TfSickLeave
+  Left = 0
+  Top = 0
+  Caption = #1041#1086#1083#1100#1085#1080#1095#1085#1099#1077' '#1083#1080#1089#1090#1099
+  ClientHeight = 423
+  ClientWidth = 610
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -15
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  DesignSize = (
+    610
+    423)
+  PixelsPerInch = 106
+  TextHeight = 18
+  object Panel1: TPanel
+    Left = 8
+    Top = 8
+    Width = 521
+    Height = 41
+    BevelOuter = bvLowered
+    Caption = #1060#1048#1054' '#1087#1077#1076#1072#1075#1086#1075#1072', '#1091#1095#1077#1073#1085#1099#1081' '#1075#1086#1076
+    TabOrder = 0
+  end
+  object cmbPedagogue: TComboBox
+    Left = 8
+    Top = 86
+    Width = 183
+    Height = 26
+    Style = csDropDownList
+    TabOrder = 1
+  end
+  object cmbAcademicYear: TComboBox
+    Left = 218
+    Top = 94
+    Width = 117
+    Height = 26
+    Style = csDropDownList
+    Anchors = [akLeft, akTop, akBottom]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 2
+  end
+end

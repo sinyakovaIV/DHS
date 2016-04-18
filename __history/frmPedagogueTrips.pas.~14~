@@ -1,0 +1,116 @@
+unit frmPedagogueTrips;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfPedagogueTrips = class(TForm)
+    Panel1: TPanel;
+    cmbOrders: TComboBox;
+    cmbAcademicYear: TComboBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Panel2: TPanel;
+    lvTriping: TListView;
+    Panel3: TPanel;
+    lvPedagogue: TListView;
+    bClose: TButton;
+    bToTrip: TButton;
+    bDeleteRecord: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure cmbOrdersChange(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    OrdersTrip: TResultTable;
+    PedagogueList: TResultTable;
+    FIDAcademicYear: integer;
+    IDOrder: integer;
+    IDPedagogue: integer;
+    procedure ShowPedagogueList;
+    procedure SetIDAcademicYear(const Value: integer);
+  public
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fPedagogueTrips: TfPedagogueTrips;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfPedagogueTrips.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfPedagogueTrips.cmbOrdersChange(Sender: TObject);
+begin
+  IDOrder := OrdersTrip[cmbOrders.ItemIndex].ValueByName('ID_OUT');
+end;
+
+procedure TfPedagogueTrips.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  OrdersTrip := nil;
+  PedagogueList := nil;
+end;
+
+procedure TfPedagogueTrips.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(OrdersTrip) then
+    FreeAndNil(OrdersTrip);
+  if Assigned(PedagogueList) then
+    FreeAndNil(PedagogueList);
+end;
+
+procedure TfPedagogueTrips.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', true);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+
+  if not Assigned(OrdersTrip) then
+    OrdersTrip := Kernel.GetOrdersTrip(IDAcademicYear);
+  Kernel.FillingComboBox(cmbOrders, OrdersTrip, 'LENGTH_NUMBER_DATE', false);
+  // убедиться, что не будет ошибки, если в кмб будет пустым, а я указываю первую строку..
+  cmbOrders.ItemIndex := 0;
+
+  ShowPedagogueList;
+end;
+
+procedure TfPedagogueTrips.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfPedagogueTrips.ShowPedagogueList;
+begin
+  if Assigned(PedagogueList) then
+    FreeAndNil(PedagogueList);
+  PedagogueList := Kernel.GetPedagogueSurnameNP;
+  // выбираю данные из энтой процедуры, аналогично списку класса педагога
+  Kernel.GetLVPedagogue(lvPedagogue, PedagogueList);
+  if lvPedagogue.Items.Count > 0 then
+  begin
+    lvPedagogue.ItemIndex := 0;
+    bToTrip.Enabled := true;
+  end
+  else
+    bToTrip.Enabled := false;
+end;
+
+end.

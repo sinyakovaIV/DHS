@@ -1,0 +1,131 @@
+unit frmSickLeave;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfSickLeave = class(TForm)
+    Panel1: TPanel;
+    cmbPedagogue: TComboBox;
+    cmbAcademicYear: TComboBox;
+    Label3: TLabel;
+    Label1: TLabel;
+    ListView1: TListView;
+    dtpDateEvent: TDateTimePicker;
+    DateTimePicker1: TDateTimePicker;
+    bAddSickLeave: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    Label2: TLabel;
+    Label4: TLabel;
+    Button4: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure bAddSickLeaveClick(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    FStrPedagogue: string;
+    FIDPedagogue: integer;
+    FStrAcademicYear: string;
+    FIDAcademicYear: integer;
+    procedure SetStrPedagogue(const Value: string);
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetStrAcademicYear(const Value: string);
+    procedure SetIDAcademicYear(const Value: integer);
+  public
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+    property IDPedagogue: integer read FIDPedagogue
+      write SetIDPedagogue;
+    property StrAcademicYear: string read FStrAcademicYear
+      write SetStrAcademicYear;
+    property StrPedagogue: string read FStrPedagogue
+      write SetStrPedagogue;
+  end;
+
+var
+  fSickLeave: TfSickLeave;
+
+implementation
+
+{$R *.dfm}
+{ TfSickLeave }
+
+procedure TfSickLeave.bAddSickLeaveClick(Sender: TObject);
+begin
+  if (cmbPedagogue.ItemIndex = 0) or (cmbAcademicYear.ItemIndex = 0) then
+  begin
+    ShowMessage('Выберите педагога и учебный год!');
+    Exit;
+  end;
+
+end;
+
+procedure TfSickLeave.Button3Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfSickLeave.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+end;
+
+procedure TfSickLeave.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+end;
+
+procedure TfSickLeave.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', true);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', true);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+end;
+
+procedure TfSickLeave.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfSickLeave.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfSickLeave.SetStrAcademicYear(const Value: string);
+begin
+  if FStrAcademicYear <> Value then
+    FStrAcademicYear := Value;
+end;
+
+procedure TfSickLeave.SetStrPedagogue(const Value: string);
+begin
+  if FStrPedagogue <> Value then
+    FStrPedagogue := Value;
+end;
+
+end.

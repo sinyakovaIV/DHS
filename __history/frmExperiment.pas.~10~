@@ -1,0 +1,117 @@
+unit frmExperiment;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ComCtrls, Vcl.StdCtrls, dbfunc, uKernel;
+
+type
+  // FuncRT = function: TResultTable
+  // var Func: function
+
+  TfExperiment = class(TForm)
+
+    ComboBox1: TComboBox;
+    ComboBox2: TComboBox;
+    ListView1: TListView;
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+
+  private
+    AcademicYear: TResultTable;
+    FIDCurAcademicYear: integer;
+    procedure SetIDCurAcademicYear(const Value: integer);
+    procedure FillingComboBox(const cmbName: TComboBox;
+      const RTName: TResultTable; const FieldName: string;
+      const Line_All: Boolean);
+    procedure ChooseComboBoxItemIndex(const cmbName: TComboBox;
+      const RTName: TResultTable; const FieldIsIngeger: Boolean;
+      const FieldIntOrStr: string; ExampleInt: integer = 0;
+      ExampleStr: string = '');
+
+  public
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+  end;
+
+var
+  fExperiment: TfExperiment;
+
+implementation
+
+{$R *.dfm}
+{ TfExperiment }
+
+procedure TfExperiment.ChooseComboBoxItemIndex(const cmbName: TComboBox;
+  const RTName: TResultTable; const FieldIsIngeger: Boolean;
+  const FieldIntOrStr: string; ExampleInt: integer; ExampleStr: string);
+var
+  i, n: integer;
+begin
+  n := 0;
+  if cmbName.Items[0] = 'Все' then
+    n := 1;
+  for i := 0 to RTName.Count - 1 do
+    if FieldIsIngeger then
+      if RTName[i].ValueByName(FieldIntOrStr) = ExampleInt then
+        cmbName.ItemIndex := i + n
+      else if RTName[i].ValueStrByName(FieldIntOrStr) = ExampleStr then
+        cmbName.ItemIndex := i + n;
+end;
+
+procedure TfExperiment.FillingComboBox(const cmbName: TComboBox;
+  const RTName: TResultTable; const FieldName: string; const Line_All: Boolean);
+var
+  i, n: integer;
+begin
+  n := 0;
+  with cmbName do
+  begin
+    Clear;
+    if Line_All then
+    begin
+      Items.Add('Все');
+      n := 1;
+    end;
+    if Assigned(RTName) then
+      for i := 0 to RTName.Count - 1 do
+        Items.Add(RTName[i].ValueStrByName(FieldName));
+    if Assigned(RTName) then
+    begin
+      n := n + RTName.Count;
+      // FreeAndNil(RTName);
+    end;
+    DropDownCount := n;
+  end;
+end;
+
+procedure TfExperiment.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+end;
+
+procedure TfExperiment.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+end;
+
+procedure TfExperiment.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  FillingComboBox(ComboBox1, AcademicYear, 'NAME', true);
+  ChooseComboBoxItemIndex(ComboBox1, AcademicYear, true, 'ID',
+    IDCurAcademicYear);
+end;
+
+procedure TfExperiment.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+end.

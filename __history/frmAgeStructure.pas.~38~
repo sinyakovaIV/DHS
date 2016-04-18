@@ -1,0 +1,613 @@
+unit frmAgeStructure;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel, Vcl.Mask,
+  Winapi.ActiveX, ComObj, Vcl.OleServer;
+
+type
+  TfAgeStructure = class(TForm)
+    lvAgeStructure: TListView;
+    Panel1: TPanel;
+    cmbPedagogue: TComboBox;
+    cmbEducationProgram: TComboBox;
+    Label3: TLabel;
+    Label1: TLabel;
+    meReportingDate: TMaskEdit;
+    bExportToExcel: TButton;
+    Memo1: TMemo;
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure cmbPedagogueChange(Sender: TObject);
+    procedure meReportingDateEnter(Sender: TObject);
+    procedure cmbEducationProgramChange(Sender: TObject);
+    procedure bExportToExcelClick(Sender: TObject);
+  private
+    Age: TResultTable;
+    // AcademicYear: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    EducationProgram: TResultTable;
+    CountProgram: TResultTable;
+    AgeStructure: TResultTable;
+
+    IDEducationProgram: integer;
+    // получаю ч/з комбобоксы исп для отображения на форме
+    IDEdProgr: integer;
+    // получаю, листая CountProgram, исп для отправки дянных в Excel
+    StrEducationProgram: string;
+    // получаю, листая CountProgram, исп для отправки дянных в Excel
+
+    FIDPedagogue: integer;
+    // иниц при созд формы и потом ч/з комбобокс, исп для отображения на форме и отправки в Excel
+    PedSurnameNP: string;
+    // получаю ч/з комбобокс, исп для отправки данных в Excel
+
+    FIDCurAcademicYear: integer;
+    // иниц при созд формы, исп для отправки в Excel
+    FCurAcademicYear: string; // иниц при созд формы, исп для отправки в Excel
+
+    ReportingDay: string;
+    InGender: string;
+
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDCurAcademicYear(const Value: integer);
+    procedure SetCurAcademicYear(const Value: string);
+    procedure FillinglvAgeStructure;
+    function CheckExcelInstalled(AValue: String): boolean;
+    function CheckExcelRun(AValue: String; var ADest: Variant): boolean;
+  public
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+    property CurAcademicYear: string read FCurAcademicYear
+      write SetCurAcademicYear;
+  end;
+
+var
+  fAgeStructure: TfAgeStructure;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfAgeStructure.bExportToExcelClick(Sender: TObject);
+var
+  ExcelFileName, sline: string;
+  ExcelApp, Sheet, WorkBook: Variant;
+  // mem: TMemo;
+  i, ii: integer;
+begin
+  if cmbPedagogue.ItemIndex = 0 then
+  begin
+    ShowMessage('Выберите педагога!');
+    Exit;
+  end;
+
+  // а если все педагоги!!!!!!!!!!!!!!!!!!!
+  // а если будут все педагоги, то и программы надо чтобы были сразу все!!!!!!!
+  PedSurnameNP := ' ' + PedagogueSurnameNP[cmbPedagogue.ItemIndex - 1]
+    .ValueStrByName('SURNAMENP');
+  IDPedagogue := PedagogueSurnameNP[cmbPedagogue.ItemIndex - 1]
+    .ValueByName('ID_OUT');
+  // CurAcademicYear - уже инициализирована при создании формы
+  // IDEdProgr  - получу, листая CountProgram
+  // StrEducationProgram - получу, листая CountProgram
+  ReportingDay := meReportingDate.Text;
+
+  if not CheckExcelInstalled('Excel.Application') then
+    Application.MessageBox(PChar('Необходимо установить Microsoft Excel.'),
+      'Ошибка', MB_ICONERROR);
+  try
+    if not CheckExcelRun('Excel.Application', ExcelApp) then
+      ExcelApp := CreateOleObject('Excel.Application');
+    ExcelApp.Visible := false;
+    ExcelApp.Application.EnableEvents := false;
+
+    ExcelApp.SheetsInNewWorkbook := 1;
+    WorkBook := ExcelApp.Workbooks.Add;
+    Sheet := ExcelApp.Workbooks[1].WorkSheets[1];
+    // ExcelApp.Workbooks[1].WorkSheets[1].Name := 'bh';
+
+    // подумать как отображать на листе, если будут выбраны все программы
+    // StrEducationProgram := ' ' + EducationProgram[cmbEducationProgram.ItemIndex]
+    // .ValueStrByName('NAME');
+
+    // Колонтитулы
+    Sheet.PageSetup.CenterHeader := {
+      '&14ДХС "Надежда"                                         Педагог: &B ' +
+      PedSurnameNP + #13 + } ' &14ДХС "Надежда"  ' +
+      '  &B Возрастной состав на  &B' + ReportingDay { + #13 +
+      CurAcademicYear +' ' + '& учебный год          ' + #13 };
+//    Sheet.PageSetup.CenterFooter :=
+//      '&10Дата формирования отчета о возрастном составе - нада подумать: &14 &B';
+
+    // отображение листа в виде "разметка страницы"
+    // обещанные ни xlPageLayoutView ни xlPageBreakPreview не работают
+    // константу '3' выудила поредством записи макроса в Excel'е
+    ExcelApp.ActiveWindow.View := 3;
+    // Отступы
+    Sheet.PageSetup.TopMargin := 50;
+    Sheet.PageSetup.LeftMargin := 35;
+    Sheet.PageSetup.RightMargin := 30;
+    // а чего это такое? на листе кажись не отражается
+    // ExcelApp.Workbooks[1].WorkSheets[1].Cells[1, 1] := 'По группам / учащимся';
+
+    if Assigned(CountProgram) then
+      FreeAndNil(CountProgram);
+    CountProgram := Kernel.GetCountProgram(IDPedagogue, IDCurAcademicYear);
+    for i := 0 to CountProgram.Count - 1 do
+    begin
+      Memo1.Lines.Add('');
+      IDEdProgr := CountProgram[i].ValueByName('ID_OUT_PROGRAM');
+      StrEducationProgram := CountProgram[i].ValueStrByName('PROGRAM_NAME');
+      sline := 'Педагог: ' + PedSurnameNP + '  Программа: ' +
+        StrEducationProgram;
+      Memo1.Lines.Add(sline);
+      //
+      // if cmbEducationProgram.ItemIndex = 0 then
+      // IDEdProgr := 0
+      // else
+      // IDEdProgr := PedagogueSurnameNP[cmbEducationProgram.ItemIndex]
+      // .ValueByName('ID_OUT');
+
+      if Assigned(AgeStructure) then
+        FreeAndNil(AgeStructure);
+      AgeStructure := Kernel.GetAgeStructure(IDPedagogue, IDCurAcademicYear,
+        IDEdProgr, ReportingDay, '');
+
+      sline := '';
+      sline := '' + #9 + '<4' + #9 + '4' + #9 + '5' + #9 + '6' + #9 + '7' + #9 +
+        '8' + #9 + '9' + #9 + '10' + #9 + '11' + #9 + '12' + #9 + '13' + #9 +
+        '14' + #9 + '15' + #9 + '16' + #9 + '17' + #9 + '18' + #9 + '>18' +
+        #9 + 'всего';
+      Memo1.Lines.Add(sline);
+
+      sline := '';
+      sline := 'все' + #9 + AgeStructure[0].ValueStrByName('age_4_less') + #9 +
+        AgeStructure[0].ValueStrByName('age_4') + #9 + AgeStructure[0]
+        .ValueStrByName('age_5') + #9 + AgeStructure[0].ValueStrByName('age_6')
+        + #9 + AgeStructure[0].ValueStrByName('age_7') + #9 + AgeStructure[0]
+        .ValueStrByName('age_8') + #9 + AgeStructure[0].ValueStrByName('age_9')
+        + #9 + AgeStructure[0].ValueStrByName('age_10') + #9 + AgeStructure[0]
+        .ValueStrByName('age_11') + #9 + AgeStructure[0].ValueStrByName
+        ('age_12') + #9 + AgeStructure[0].ValueStrByName('age_13') + #9 +
+        AgeStructure[0].ValueStrByName('age_14') + #9 + AgeStructure[0]
+        .ValueStrByName('age_15') + #9 + AgeStructure[0].ValueStrByName
+        ('age_16') + #9 + AgeStructure[0].ValueStrByName('age_17') + #9 +
+        AgeStructure[0].ValueStrByName('age_18') + #9 + AgeStructure[0]
+        .ValueStrByName('age_18_more') + #9 + AgeStructure[0].ValueStrByName
+        ('all_sum');
+      Memo1.Lines.Add(sline);
+
+      if Assigned(AgeStructure) then
+        FreeAndNil(AgeStructure);
+      AgeStructure := Kernel.GetAgeStructure(IDPedagogue, IDCurAcademicYear,
+        IDEdProgr, ReportingDay, 'Ж');
+
+      sline := '';
+      sline := 'девочки' + #9 + AgeStructure[0].ValueStrByName('age_4_less') + #9 +
+        AgeStructure[0].ValueStrByName('age_4') + #9 + AgeStructure[0]
+        .ValueStrByName('age_5') + #9 + AgeStructure[0].ValueStrByName('age_6')
+        + #9 + AgeStructure[0].ValueStrByName('age_7') + #9 + AgeStructure[0]
+        .ValueStrByName('age_8') + #9 + AgeStructure[0].ValueStrByName('age_9')
+        + #9 + AgeStructure[0].ValueStrByName('age_10') + #9 + AgeStructure[0]
+        .ValueStrByName('age_11') + #9 + AgeStructure[0].ValueStrByName
+        ('age_12') + #9 + AgeStructure[0].ValueStrByName('age_13') + #9 +
+        AgeStructure[0].ValueStrByName('age_14') + #9 + AgeStructure[0]
+        .ValueStrByName('age_15') + #9 + AgeStructure[0].ValueStrByName
+        ('age_16') + #9 + AgeStructure[0].ValueStrByName('age_17') + #9 +
+        AgeStructure[0].ValueStrByName('age_18') + #9 + AgeStructure[0]
+        .ValueStrByName('age_18_more') + #9 + AgeStructure[0].ValueStrByName
+        ('all_sum');
+      Memo1.Lines.Add(sline);
+
+
+    end;
+
+    // mem := TMemo.Create(Self) ;
+    // mem := TMemo.Create(loginform) ;
+    // mem.Visible := false;
+    // mem.Parent := loginform;
+    // mem.Clear; // видимо родитель был чем-то забит
+
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[1].ColumnWidth := 7;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[2].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[3].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[4].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[5].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[6].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[7].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[8].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[9].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[10].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[11].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[12].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[13].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[14].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[15].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[16].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[17].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[18].ColumnWidth := 4;
+    ExcelApp.Workbooks[1].WorkSheets[1].Columns[19].ColumnWidth := 5;
+
+    Memo1.SelectAll;
+    Memo1.CopyToClipboard;
+    ExcelApp.Workbooks[1].WorkSheets[1].Paste;
+    // mem.Destroy;
+
+    // формирую имя будущего файла
+    Delete(PedSurnameNP, Length(PedSurnameNP) - 4, 5); // а это чаво?
+    ExcelFileName := CurAcademicYear + PedSurnameNP + ' - возрастной состав на '
+      + meReportingDate.Text;
+    // если файл уже существует и отказаться его перезаписать, то исключение!!!
+    // WorkBook.SaveAs(ExtractFilePath(Application.ExeName) + ExcelFileName);
+    WorkBook.SaveAs(ExtractFilePath(ParamStr(0)) + ExcelFileName);
+    // потом сделать проверку на сущ. файла и пусь пользователь
+    // решает, что с ним делать посредством диалога
+    // и еще, почему "Вместо Application.ExeName лучше использовать ParamStr(0)"
+
+    // ExcelApp.WorkBooks[1].WorkSheets[1].range['A2:F9'].Select;
+
+    ExcelApp.Visible := true;
+
+  finally
+    {
+      // Если переменная не пустая, то...
+      if not VarIsEmpty(ExcelApp) then
+      begin
+      // ...отключаем диалог с вопросом сохранять ли файл при выходе или нет
+      ExcelApp.DisplayAlerts := false;
+      // Закрываем Excel
+      ExcelApp.Quit;
+      // Присваиваем неопределенный тип, освобождая при этом
+      // процесс excel.exe, чтобы он мог завершиться. Если этого не
+      // сделать, то процесс останется висеть в памяти.
+      ExcelApp := Unassigned;
+      WorkBook := Unassigned;
+      Sheet := Unassigned;
+      end;
+    }
+  end;
+
+end;
+
+function TfAgeStructure.CheckExcelInstalled(AValue: String): boolean;
+var
+  FCLSID: TCLSID;
+begin
+  Result := (CLSIDFromProgID(PChar(AValue), FCLSID) = S_OK);
+end;
+
+function TfAgeStructure.CheckExcelRun(AValue: String;
+  var ADest: Variant): boolean;
+begin
+  try
+    ADest := GetActiveOleObject(AValue);
+    Result := true;
+  except
+    Result := false;
+  end;
+end;
+
+procedure TfAgeStructure.cmbEducationProgramChange(Sender: TObject);
+begin
+  FillinglvAgeStructure;
+end;
+
+procedure TfAgeStructure.cmbPedagogueChange(Sender: TObject);
+begin
+  cmbEducationProgram.ItemIndex := 0;
+  FillinglvAgeStructure;
+end;
+
+procedure TfAgeStructure.FillinglvAgeStructure;
+var
+  i: integer;
+  all_4_less, girl_4_less: integer;
+  all_4, girl_4: integer;
+  all_5, girl_5: integer;
+  all_6, girl_6: integer;
+  all_7, girl_7: integer;
+  all_8, girl_8: integer;
+  all_9, girl_9: integer;
+  all_10, girl_10: integer;
+  all_11, girl_11: integer;
+  all_12, girl_12: integer;
+  all_13, girl_13: integer;
+  all_14, girl_14: integer;
+  all_15, girl_15: integer;
+  all_16, girl_16: integer;
+  all_17, girl_17: integer;
+  all_18, girl_18: integer;
+  all_18_more, girl_18_more: integer;
+  all_sum, girl_sum: integer;
+begin
+  all_4_less := 0;
+  girl_4_less := 0;
+  all_4 := 0;
+  girl_4 := 0;
+  all_5 := 0;
+  girl_5 := 0;
+  all_6 := 0;
+  girl_6 := 0;
+  all_7 := 0;
+  girl_7 := 0;
+  all_8 := 0;
+  girl_8 := 0;
+  all_9 := 0;
+  girl_9 := 0;
+  all_10 := 0;
+  girl_10 := 0;
+  all_11 := 0;
+  girl_11 := 0;
+  all_12 := 0;
+  girl_12 := 0;
+  all_13 := 0;
+  girl_13 := 0;
+  all_14 := 0;
+  girl_14 := 0;
+  all_15 := 0;
+  girl_15 := 0;
+  all_16 := 0;
+  girl_16 := 0;
+  all_17 := 0;
+  girl_17 := 0;
+  all_18 := 0;
+  girl_18 := 0;
+  all_18_more := 0;
+  girl_18_more := 0;
+  all_sum := 0;
+  girl_sum := 0;
+  // DateTimeToString(ReportingDay, 'dd.mm.yyyy', dtpReportingDate.Date);
+  ReportingDay := meReportingDate.Text;
+  if cmbPedagogue.ItemIndex = 0 then
+    IDPedagogue := 0
+  else
+    IDPedagogue := PedagogueSurnameNP[cmbPedagogue.ItemIndex - 1]
+      .ValueByName('ID_OUT');
+  if cmbEducationProgram.ItemIndex = 0 then
+    IDEducationProgram := 0
+  else
+    IDEducationProgram := EducationProgram[cmbEducationProgram.ItemIndex - 1]
+      .ValueByName('ID');
+  if Assigned(Age) then
+    FreeAndNil(Age);
+  Age := Kernel.GetAge(IDPedagogue, IDCurAcademicYear, IDEducationProgram,
+    ReportingDay);
+  if Age.Count > 0 then
+  begin
+    for i := 0 to Age.Count - 1 do
+      case Age[i].ValueByName('AGE') of
+        0:
+          all_4_less := all_4_less + 1;
+        1:
+          all_4_less := all_4_less + 1;
+        2:
+          all_4_less := all_4_less + 1;
+        3:
+          all_4_less := all_4_less + 1;
+        4:
+          all_4 := all_4 + 1;
+        5:
+          all_5 := all_5 + 1;
+        6:
+          all_6 := all_6 + 1;
+        7:
+          all_7 := all_7 + 1;
+        8:
+          all_8 := all_8 + 1;
+        9:
+          all_9 := all_9 + 1;
+        10:
+          all_10 := all_10 + 1;
+        11:
+          all_11 := all_11 + 1;
+        12:
+          all_12 := all_12 + 1;
+        13:
+          all_13 := all_13 + 1;
+        14:
+          all_14 := all_14 + 1;
+        15:
+          all_15 := all_15 + 1;
+        16:
+          all_16 := all_16 + 1;
+        17:
+          all_17 := all_17 + 1;
+        18:
+          all_18 := all_18 + 1;
+      else
+        if Age[i].ValueByName('AGE') > 18 then
+          all_18_more := all_18_more + 1;
+      end;
+    all_sum := all_4_less + all_4 + all_5 + all_6 + all_7 + all_8 + all_9 +
+      all_10 + all_11 + all_12 + all_13 + all_14 + all_15 + all_16 + all_17 +
+      all_18 + all_18_more;
+    for i := 0 to Age.Count - 1 do
+      if Age[i].ValueStrByName('OUT_GENDER') = 'Ж' then
+      begin
+        case Age[i].ValueByName('AGE') of
+          0:
+            girl_4_less := girl_4_less + 1;
+          1:
+            girl_4_less := girl_4_less + 1;
+          2:
+            girl_4_less := girl_4_less + 1;
+          3:
+            girl_4_less := girl_4_less + 1;
+          4:
+            girl_4 := girl_4 + 1;
+          5:
+            girl_5 := girl_5 + 1;
+          6:
+            girl_6 := girl_6 + 1;
+          7:
+            girl_7 := girl_7 + 1;
+          8:
+            girl_8 := girl_8 + 1;
+          9:
+            girl_9 := girl_9 + 1;
+          10:
+            girl_10 := girl_10 + 1;
+          11:
+            girl_11 := girl_11 + 1;
+          12:
+            girl_12 := girl_12 + 1;
+          13:
+            girl_13 := girl_13 + 1;
+          14:
+            girl_14 := girl_14 + 1;
+          15:
+            girl_15 := girl_15 + 1;
+          16:
+            girl_16 := girl_16 + 1;
+          17:
+            girl_17 := girl_17 + 1;
+          18:
+            girl_18 := girl_18 + 1;
+        else
+          if Age[i].ValueByName('AGE') > 18 then
+            girl_18_more := girl_18_more + 1;
+        end;
+      end;
+    girl_sum := girl_4_less + girl_4 + girl_5 + girl_6 + girl_7 + girl_8 +
+      girl_9 + girl_10 + girl_11 + girl_12 + girl_13 + girl_14 + girl_15 +
+      girl_16 + girl_17 + girl_18 + girl_18_more;
+    // end;
+    lvAgeStructure.Clear;
+    lvAgeStructure.Items.BeginUpdate;
+    with lvAgeStructure.Items.Add do
+    begin
+      Caption := 'всего';
+      SubItems.Add(IntToStr(all_4_less));
+      SubItems.Add(IntToStr(all_4));
+      SubItems.Add(IntToStr(all_5));
+      SubItems.Add(IntToStr(all_6));
+      SubItems.Add(IntToStr(all_7));
+      SubItems.Add(IntToStr(all_8));
+      SubItems.Add(IntToStr(all_9));
+      SubItems.Add(IntToStr(all_10));
+      SubItems.Add(IntToStr(all_11));
+      SubItems.Add(IntToStr(all_12));
+      SubItems.Add(IntToStr(all_13));
+      SubItems.Add(IntToStr(all_14));
+      SubItems.Add(IntToStr(all_15));
+      SubItems.Add(IntToStr(all_16));
+      SubItems.Add(IntToStr(all_17));
+      SubItems.Add(IntToStr(all_18));
+      SubItems.Add(IntToStr(all_18_more));
+      SubItems.Add(IntToStr(all_sum));
+    end;
+    with lvAgeStructure.Items.Add do
+    begin
+      Caption := 'девочек';
+      SubItems.Add(IntToStr(girl_4_less));
+      SubItems.Add(IntToStr(girl_4));
+      SubItems.Add(IntToStr(girl_5));
+      SubItems.Add(IntToStr(girl_6));
+      SubItems.Add(IntToStr(girl_7));
+      SubItems.Add(IntToStr(girl_8));
+      SubItems.Add(IntToStr(girl_9));
+      SubItems.Add(IntToStr(girl_10));
+      SubItems.Add(IntToStr(girl_11));
+      SubItems.Add(IntToStr(girl_12));
+      SubItems.Add(IntToStr(girl_13));
+      SubItems.Add(IntToStr(girl_14));
+      SubItems.Add(IntToStr(girl_15));
+      SubItems.Add(IntToStr(girl_16));
+      SubItems.Add(IntToStr(girl_17));
+      SubItems.Add(IntToStr(girl_18));
+      SubItems.Add(IntToStr(girl_18_more));
+      SubItems.Add(IntToStr(girl_sum));
+    end;
+    lvAgeStructure.Items.EndUpdate;
+  end
+  else
+  begin
+    lvAgeStructure.Clear;
+    ShowMessage
+      ('Ошибка! Проверьте дату отчета или соответствие программы и педагога!');
+    // а чего оно вылезает
+  end;
+end;
+
+procedure TfAgeStructure.FormCreate(Sender: TObject);
+begin
+  // AcademicYear := nil;
+  PedagogueSurnameNP := nil;
+  EducationProgram := nil;
+  Age := nil;
+  CountProgram := nil;
+  AgeStructure := nil;
+end;
+
+procedure TfAgeStructure.FormDestroy(Sender: TObject);
+begin
+  // if Assigned(AcademicYear) then
+  // FreeAndNil(AcademicYear);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(Age) then
+    FreeAndNil(Age);
+  if Assigned(EducationProgram) then
+    FreeAndNil(EducationProgram);
+  if Assigned(CountProgram) then
+    FreeAndNil(CountProgram);
+  if Assigned(AgeStructure) then
+    FreeAndNil(AgeStructure);
+end;
+
+procedure TfAgeStructure.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  // if not Assigned(AcademicYear) then
+  // AcademicYear := Kernel.GetAcademicYear;
+  // Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  // Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+  // IDCurAcademicYear);
+
+  if not Assigned(EducationProgram) then
+    EducationProgram := Kernel.GetEducationProgram;
+  Kernel.FillingComboBox(cmbEducationProgram, EducationProgram, 'NAME', true);
+  // Kernel.ChooseComboBoxItemIndex(cmbEducationProgram, EducationProgram, true, 'ID',
+  // IDCurAcademicYear);
+  cmbEducationProgram.ItemIndex := 0;
+
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  Kernel.FillingComboBox(cmbPedagogue, PedagogueSurnameNP, 'SurnameNP', true);
+  Kernel.ChooseComboBoxItemIndex(cmbPedagogue, PedagogueSurnameNP, true,
+    'ID_OUT', IDPedagogue);
+
+  FillinglvAgeStructure;
+end;
+
+procedure TfAgeStructure.meReportingDateEnter(Sender: TObject);
+begin
+  FillinglvAgeStructure;
+end;
+
+procedure TfAgeStructure.SetCurAcademicYear(const Value: string);
+begin
+  if FCurAcademicYear <> Value then
+    FCurAcademicYear := Value;
+end;
+
+procedure TfAgeStructure.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+procedure TfAgeStructure.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+end.

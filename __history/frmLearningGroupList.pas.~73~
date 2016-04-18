@@ -1,0 +1,408 @@
+unit frmLearningGroupList;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfLearningGroupList = class(TForm)
+    GroupBox1: TGroupBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    Label4: TLabel;
+    cmbChooseAcademicYear: TComboBox;
+    cmbChooseEducationProgram: TComboBox;
+    cmbChoosePedagogue: TComboBox;
+    cmbChooseStatus: TComboBox;
+    lvLearningGroup: TListView;
+    Button3: TButton;
+    bNewRecord: TButton;
+    bChangeRecord: TButton;
+    bGroupMembers: TButton;
+    bDeleteGroup: TButton;
+    procedure bDeleteGroupeClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure lvLearningGroupSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure bNewRecordClick(Sender: TObject);
+    procedure bChangeRecordClick(Sender: TObject);
+    procedure lvLearningGroupCustomDrawItem(Sender: TCustomListView;
+      Item: TListItem; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure cmbChooseEducationProgramChange(Sender: TObject);
+    procedure cmbChoosePedagogueChange(Sender: TObject);
+    procedure cmbChooseAcademicYearChange(Sender: TObject);
+    procedure cmbChooseLearningFormChange(Sender: TObject);
+    procedure cmbChooseStatusChange(Sender: TObject);
+    procedure bGroupMembersClick(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+
+  private
+    AcademicYear: TResultTable;
+    EducationProgram: TResultTable;
+    PedagogueSurnameNP: TResultTable;
+    StatusLearningGroup: TResultTable;
+    LearningGroupList: TResultTable;
+    FIDPedagogue: integer;
+    FIDCurAcademicYear: integer;
+    procedure ShowLearningGroupList;
+    procedure OnChangeCMBsSetProperties;
+    /// //////////////function ChangeCMBsSetProperties: Array of integer; ??????
+
+    procedure SetIDPedagogue(const Value: integer);
+    procedure SetIDCurAcademicYear(const Value: integer);
+  public
+    // IDLearningGroup: integer;
+    property IDPedagogue: integer read FIDPedagogue write SetIDPedagogue;
+    property IDCurAcademicYear: integer read FIDCurAcademicYear
+      write SetIDCurAcademicYear;
+  end;
+
+var
+  fLearningGroupList: TfLearningGroupList;
+
+implementation
+
+{$R *.dfm}
+
+uses frmLearningGroupEdit, frmLGroupMembers;
+
+procedure TfLearningGroupList.bChangeRecordClick(Sender: TObject);
+begin
+  fLearningGroupEdit.NewRecord := false;
+  if (not Assigned(fLearningGroupEdit)) then
+    fLearningGroupEdit := TfLearningGroupEdit.Create(Self);
+  fLearningGroupEdit.ShowModal;
+  if fLearningGroupEdit.ModalResult = mrOk then
+    ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.bGroupMembersClick(Sender: TObject);
+begin
+  if (not Assigned(fLGroupMembers)) then
+    fLGroupMembers := TfLGroupMembers.Create(Self);
+  fLGroupMembers.ShowModal;
+end;
+
+procedure TfLearningGroupList.bNewRecordClick(Sender: TObject);
+begin
+  if (cmbChooseEducationProgram.ItemIndex = 0) then
+  begin
+    ShowMessage
+      ('Для создания новой группы выберите программу!');
+    Exit;
+  end;
+  fLearningGroupEdit.NewRecord := true;
+  fLearningGroupEdit.idLearningGroup := -1;
+  if (not Assigned(fLearningGroupEdit)) then
+    fLearningGroupEdit := TfLearningGroupEdit.Create(Self);
+  fLearningGroupEdit.ShowModal;
+  if fLearningGroupEdit.ModalResult = mrOk then
+    ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.Button3Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfLearningGroupList.bDeleteGroupeClick(Sender: TObject);
+begin
+  if Kernel.DeleteGroup([fLearningGroupEdit.idLearningGroup]) then
+  begin
+    ShowMessage('Группа удалена!');
+    // МОЖЕТ НЕ СТОИТ ВЫВОДИТЬ ЭТО СООБЩЕНИЕ!!???
+    ShowLearningGroupList; // для обновления осн.сведений
+  end
+  else
+    ShowMessage('Ошибка при удалении группы!');
+end;
+
+procedure TfLearningGroupList.cmbChooseAcademicYearChange(Sender: TObject);
+begin
+  ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.cmbChooseEducationProgramChange(Sender: TObject);
+begin
+  ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.cmbChooseLearningFormChange(Sender: TObject);
+begin
+  ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.cmbChoosePedagogueChange(Sender: TObject);
+begin
+  ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.cmbChooseStatusChange(Sender: TObject);
+begin
+  ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  EducationProgram := nil;
+  PedagogueSurnameNP := nil;
+  StatusLearningGroup := nil;
+  LearningGroupList := nil;
+end;
+
+procedure TfLearningGroupList.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(EducationProgram) then
+    FreeAndNil(EducationProgram);
+  if Assigned(PedagogueSurnameNP) then
+    FreeAndNil(PedagogueSurnameNP);
+  if Assigned(StatusLearningGroup) then
+    FreeAndNil(StatusLearningGroup);
+  if Assigned(LearningGroupList) then
+    FreeAndNil(LearningGroupList);
+end;
+
+procedure TfLearningGroupList.FormShow(Sender: TObject);
+var
+  i: integer;
+begin
+  if not Assigned(EducationProgram) then
+    EducationProgram := Kernel.GetEducationProgram;
+  with cmbChooseEducationProgram do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to EducationProgram.Count - 1 do
+      Items.Add(EducationProgram[i].ValueStrByName('NAME'));
+    DropDownCount := EducationProgram.Count + 1;
+    cmbChooseEducationProgram.ItemIndex := 0;
+  end;
+
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  with cmbChooseAcademicYear do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to AcademicYear.Count - 1 do
+      Items.Add(AcademicYear[i].ValueStrByName('NAME'));
+    DropDownCount := AcademicYear.Count + 1;
+    for i := 0 to AcademicYear.Count - 1 do
+      if AcademicYear[i].ValueByName('ID') = IDCurAcademicYear then
+        cmbChooseAcademicYear.ItemIndex := i + 1;
+  end;
+
+  if not Assigned(PedagogueSurnameNP) then
+    PedagogueSurnameNP := Kernel.GetPedagogueSurnameNP;
+  with cmbChoosePedagogue do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to PedagogueSurnameNP.Count - 1 do
+      Items.Add(PedagogueSurnameNP[i].ValueStrByName('SurnameNP'));
+    DropDownCount := PedagogueSurnameNP.Count + 1;
+    for i := 0 to PedagogueSurnameNP.Count - 1 do
+      if PedagogueSurnameNP[i].ValueByName('ID_OUT') = IDPedagogue then
+        cmbChoosePedagogue.ItemIndex := i + 1;
+  end;
+
+  if not Assigned(StatusLearningGroup) then
+    StatusLearningGroup := Kernel.GetStatusLearningGroup(3);
+  with cmbChooseStatus do
+  begin
+    Clear;
+    Items.Add('Все');
+    for i := 0 to StatusLearningGroup.Count - 1 do
+      Items.Add(StatusLearningGroup[i].ValueStrByName('NOTE'));
+    DropDownCount := StatusLearningGroup.Count + 1;
+    cmbChooseStatus.ItemIndex := 0;
+  end;
+
+  ShowLearningGroupList;
+end;
+
+procedure TfLearningGroupList.lvLearningGroupCustomDrawItem
+  (Sender: TCustomListView; Item: TListItem; State: TCustomDrawState;
+  var DefaultDraw: Boolean);
+begin
+  if Item.SubItems.Strings[5] = 'Расформированная' then
+    Sender.Canvas.Brush.Color := 6521080; {
+    Sender.Canvas.Brush.Color := 	$00FF0000;
+    else
+    Sender.Canvas.Brush.Color := clWindow; }
+  // if Item.Selected { in State } then
+  // Sender.Canvas.Brush.Color := 6521080 // ан не работает...
+end;
+
+procedure TfLearningGroupList.lvLearningGroupSelectItem(Sender: TObject;
+  Item: TListItem; Selected: Boolean);
+var
+  education_program, pedagogue, academic_year, learning_group_type,
+    status: integer;
+begin
+  with LearningGroupList[Item.Index] do
+  begin
+    fLearningGroupEdit.idLearningGroup := ValueByName('ID_OUT');
+    fLearningGroupEdit.GName := ValueStrByName('NAME');
+    fLearningGroupEdit.StrEducationProgram :=
+      ValueStrByName('EDUCATION_PROGRAM');
+    fLearningGroupEdit.StrPedagogue := ValueStrByName('SURNAMENP');
+    fLearningGroupEdit.StrLearningForm := ValueStrByName('LEARNING_GROUP_TYPE');
+    fLearningGroupEdit.StrStatus := ValueStrByName('STATUS_GROUP');
+    fLearningGroupEdit.StrAcademicYear := ValueStrByName('ACADEMIC_YEAR');
+    fLearningGroupEdit.StrLearningLevel := ValueStrByName('LEARNING_LEVEL');
+    fLearningGroupEdit.IntHoursAmount := ValueByName('WEEK_AMOUNT_HOURS');
+    // ПЕРЕДАТЬ ЗНАЧЕНИЯ В СВОЙСТВА ФОРМЫ С СОСТАВОМ ГРУПП
+    fLGroupMembers.idLearningGroup := ValueByName('ID_OUT');
+    fLGroupMembers.StrLearningGroup := ValueStrByName('NAME');
+  end;
+  // КОД НИЖЕ ЗАСУНУТЬ В СПЕЦФУНКЦИЮ, ВОЗВРАЩАЮЩУЮ МАССИВ ЦЕЛЫХ ЧИСЕЛ?????
+  if cmbChooseEducationProgram.ItemIndex = 0 then
+    education_program := 0
+  else
+    education_program := EducationProgram[cmbChooseEducationProgram.ItemIndex -
+      1].ValueByName('ID');
+  if cmbChoosePedagogue.ItemIndex = 0 then
+    pedagogue := 0
+  else
+    pedagogue := PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex - 1]
+      .ValueByName('ID_OUT');
+  if cmbChooseAcademicYear.ItemIndex = 0 then
+    academic_year := 0
+  else
+    academic_year := AcademicYear[cmbChooseAcademicYear.ItemIndex - 1]
+      .ValueByName('ID');
+  if cmbChooseStatus.ItemIndex = 0 then
+    status := 0
+  else
+    status := StatusLearningGroup[cmbChooseStatus.ItemIndex - 1]
+      .ValueByName('CODE');
+
+  fLGroupMembers.IDEducationProgram := education_program;
+  fLGroupMembers.IDPedagogue := pedagogue;
+  fLGroupMembers.IDLearningForm := 1; // сие id групповой формы обучения
+  fLGroupMembers.IDStatus := status;
+  fLGroupMembers.IDAcademicYear := academic_year;
+
+  fLearningGroupEdit.IDEducationProgram := education_program;
+  fLearningGroupEdit.IDPedagogue := pedagogue;
+//  fLearningGroupEdit.IDAcademicYear := academic_year;
+
+  // fLearningGroupEdit.IDLearningGroup := LearningGroupList[Item.Index].ValueByName('ID_OUT');
+end;
+
+// ВМЕСТО ПРОЦЕДУРЫ ЗАМУТИТЬ ФУНКЦИЮ!!!!!!!!!!!!!!!!!!!!!!????????????????
+procedure TfLearningGroupList.OnChangeCMBsSetProperties;
+var
+  education_program, pedagogue, academic_year, learning_group_type,
+    status: integer;
+begin
+  if cmbChooseEducationProgram.ItemIndex = 0 then
+    education_program := 0
+  else
+    education_program := EducationProgram[cmbChooseEducationProgram.ItemIndex -
+      1].ValueByName('ID');
+  if cmbChoosePedagogue.ItemIndex = 0 then
+    pedagogue := 0
+  else
+    pedagogue := PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex - 1]
+      .ValueByName('ID_OUT');
+  if cmbChooseAcademicYear.ItemIndex = 0 then
+    academic_year := 0
+  else
+    academic_year := AcademicYear[cmbChooseAcademicYear.ItemIndex - 1]
+      .ValueByName('ID');
+  if cmbChooseStatus.ItemIndex = 0 then
+    status := 0
+  else
+    status := StatusLearningGroup[cmbChooseStatus.ItemIndex - 1]
+      .ValueByName('CODE');
+
+  fLGroupMembers.IDEducationProgram := education_program;
+  fLGroupMembers.IDPedagogue := pedagogue;
+  // fLGroupMembers.IDLearningForm := learning_group_type;
+  fLGroupMembers.IDLearningForm := 1; // сие id групповой формы обучения
+  fLGroupMembers.IDStatus := status;
+  fLGroupMembers.IDAcademicYear := academic_year;
+
+  fLearningGroupEdit.IDEducationProgram := education_program;
+  fLearningGroupEdit.IDPedagogue := pedagogue;
+  fLearningGroupEdit.IDAcademicYear := academic_year;
+
+end;
+
+procedure TfLearningGroupList.SetIDCurAcademicYear(const Value: integer);
+begin
+  if FIDCurAcademicYear <> Value then
+    FIDCurAcademicYear := Value;
+end;
+
+procedure TfLearningGroupList.SetIDPedagogue(const Value: integer);
+begin
+  if FIDPedagogue <> Value then
+    FIDPedagogue := Value;
+end;
+
+procedure TfLearningGroupList.ShowLearningGroupList;
+var
+  education_program, pedagogue, academic_year, learning_group_type,
+    status: integer;
+begin
+  if cmbChooseEducationProgram.ItemIndex = 0 then
+    education_program := 0
+  else
+    education_program := EducationProgram[cmbChooseEducationProgram.ItemIndex -
+      1].ValueByName('ID');
+  if cmbChoosePedagogue.ItemIndex = 0 then
+    pedagogue := 0
+  else
+    pedagogue := PedagogueSurnameNP[cmbChoosePedagogue.ItemIndex - 1]
+      .ValueByName('ID_OUT');
+  if cmbChooseAcademicYear.ItemIndex = 0 then
+    academic_year := 0
+  else
+    academic_year := AcademicYear[cmbChooseAcademicYear.ItemIndex - 1]
+      .ValueByName('ID');
+  if cmbChooseStatus.ItemIndex = 0 then
+    status := 0
+  else
+    status := StatusLearningGroup[cmbChooseStatus.ItemIndex - 1]
+      .ValueByName('CODE');
+  learning_group_type := 1;  // я не получаю программно этот тип, а закладываю
+//вручную - несовершенство, с которым нужно смириться? как изменить не знаю пока
+  fLGroupMembers.IDEducationProgram := education_program;
+  fLGroupMembers.IDPedagogue := pedagogue;
+  fLGroupMembers.IDLearningForm := learning_group_type;
+  fLGroupMembers.IDStatus := status;
+  fLGroupMembers.IDAcademicYear := academic_year;
+   OnChangeCMBsSetProperties;
+  if Assigned(LearningGroupList) then
+    FreeAndNil(LearningGroupList);
+  LearningGroupList := Kernel.GetLearningGroupList(education_program, pedagogue,
+    academic_year, learning_group_type, status);
+  Kernel.GetLVLearningGroup(lvLearningGroup, LearningGroupList);
+  if lvLearningGroup.Items.Count > 0 then
+  begin
+    lvLearningGroup.ItemIndex := 0;
+    bChangeRecord.Enabled := true;
+    bGroupMembers.Enabled := true;
+    bDeleteGroup.Enabled := true;
+  end
+  else
+  begin
+    bChangeRecord.Enabled := false;
+    bGroupMembers.Enabled := false;
+    bDeleteGroup.Enabled := false;
+  end;
+end;
+
+end.

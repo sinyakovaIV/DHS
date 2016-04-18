@@ -1,0 +1,146 @@
+unit frmContact;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, Vcl.ExtCtrls,
+  dbfunc, uKernel;
+
+type
+  TfContact = class(TForm)
+    Panel1: TPanel;
+    meContactValue: TMaskEdit;
+    cmbContactType: TComboBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    GroupBox1: TGroupBox;
+    Button1: TButton;
+    Button2: TButton;
+    procedure Button2Click(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    ContactType: TResultTable;
+    FIDParent, FIDContact{, FIDContactType}: Integer;
+    FContactValue: String;
+    FNewRecord: boolean;
+    procedure SetIDParent(const Value: Integer);
+    procedure SetIDContact(const Value: Integer);
+    {procedure SetIDContactType(const Value: Integer);}
+    procedure SetContactValue(const Value: String);
+    procedure SetNewRecord(const Value: boolean);
+  public
+    IDContactType: integer;
+    property IDParent: Integer read FIDParent write SetIDParent;
+    property IDContact: Integer read FIDContact write SetIDContact;
+    {property IDContactType: Integer read FIDContactType write SetIDContactType;}
+    property ContactValue: String read FContactValue write SetContactValue;
+    property NewRecord: boolean read FNewRecord write SetNewRecord;
+  end;
+
+var
+  fContact: TfContact;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfContact.Button1Click(Sender: TObject);
+begin
+  if Kernel.SaveParentContact([IDContact, IDParent, //IDContactType,
+    (cmbContactType.ItemIndex + 1),
+    meContactValue.Text]) then
+  begin
+    ShowMessage('Сохранение выполнено!');
+
+    Close;
+           //ModalResult := mrOk;
+  end
+  else
+    ShowMessage('Ошибка при сохранении!');
+  Close;
+end;
+
+procedure TfContact.Button2Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfContact.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+   ModalResult := mrOk;
+end;
+
+procedure TfContact.FormCreate(Sender: TObject);
+begin
+  ContactType := nil;
+end;
+
+procedure TfContact.FormDestroy(Sender: TObject);
+begin
+  if Assigned(ContactType) then
+    FreeAndNil(ContactType);
+end;
+
+procedure TfContact.FormShow(Sender: TObject);
+var
+  i: Integer;
+begin
+  if not Assigned(ContactType) then
+    ContactType := Kernel.GetContactType;
+  with cmbContactType do
+  begin
+    Clear;
+    for i := 0 to ContactType.Count - 1 do
+      Items.Add(ContactType[i].ValueStrByName('NAME'));
+  end;
+
+  if NewRecord then
+  begin
+    IDContact := -1;
+    meContactValue.Clear;
+  end
+  else
+  begin
+    meContactValue.Text := ContactValue;
+    cmbContactType.ItemIndex := IDContactType - 1;
+  end;
+
+end;
+
+procedure TfContact.SetContactValue(const Value: String);
+begin
+  if FContactValue <> Value then
+    FContactValue := Value;
+end;
+
+procedure TfContact.SetIDContact(const Value: Integer);
+begin
+  if FIDContact <> Value then
+    FIDContact := Value;
+end;
+{
+procedure TfContact.SetIDContactType(const Value: Integer);
+begin
+  if FIDContactType <> Value then
+    FIDContactType := Value;
+end;}
+
+procedure TfContact.SetIDParent(const Value: Integer);
+begin
+  if FIDParent <> Value then
+    FIDParent := Value;
+end;
+
+procedure TfContact.SetNewRecord(const Value: boolean);
+begin
+  if FNewRecord <> Value then
+    FNewRecord := Value;
+end;
+
+end.

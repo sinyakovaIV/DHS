@@ -1,0 +1,210 @@
+unit frmPedagogueTrips;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfPedagogueTrips = class(TForm)
+    Panel1: TPanel;
+    cmbOrders: TComboBox;
+    cmbAcademicYear: TComboBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    Panel2: TPanel;
+    lvTriping: TListView;
+    Panel3: TPanel;
+    lvPedagogue: TListView;
+    bClose: TButton;
+    bToTrip: TButton;
+    bDeleteRecord: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure cmbOrdersChange(Sender: TObject);
+    procedure bToTripClick(Sender: TObject);
+    procedure bDeleteRecordClick(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    OrdersTrip: TResultTable;
+    PedagogueList: TResultTable;
+    TripingList: TResultTable;
+    FIDAcademicYear: integer;
+    IDOrder: integer;
+    IDPedagogue: integer;
+    procedure ShowPedagogueList;
+    // а зачем ей входной та, мож обойдется
+    procedure ShowTripingList(const id_order: integer);
+    procedure SetIDAcademicYear(const Value: integer);
+  public
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fPedagogueTrips: TfPedagogueTrips;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfPedagogueTrips.bCloseClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TfPedagogueTrips.bDeleteRecordClick(Sender: TObject);
+var
+  i, s: integer;
+  id: integer;
+begin
+  // еще продумать проверку на наличие связанных с нагрузкой записей в расписании и/или журнале
+  s := 0;
+  for i := 0 to lvTriping.Items.Count - 1 do
+  begin
+    if lvTriping.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для удаления!');
+    Exit;
+  end;
+  for i := 0 to lvTriping.Items.Count - 1 do
+  begin
+    if lvTriping.Items[i].Checked then
+      if Kernel.DeletePedagogueTrip([TripingList[i].ValueByName('ID_OUT')]) then
+      begin
+        id := TripingList[i].ValueByName('ID_OUT');
+//        ShowMessage('Запись удалена!');
+        // МОЖЕТ НЕ СТОИТ ВЫВОДИТЬ ЭТО СООБЩЕНИЕ!!???
+      end
+      else
+        ShowMessage('Ошибка при удалении записи!');
+  end;
+  ShowTripingList(IDOrder);
+
+end;
+
+procedure TfPedagogueTrips.bToTripClick(Sender: TObject);
+var
+  i, s: integer;
+  id_pedagogue: integer;
+begin
+  s := 0;
+  for i := 0 to lvPedagogue.Items.Count - 1 do
+  begin
+    if lvPedagogue.Items[i].Checked then
+      s := s + 1;
+  end;
+  if s = 0 then
+  begin
+    ShowMessage('Выберите записи для зачисления!');
+    Exit;
+  end;
+  for i := 0 to lvPedagogue.Items.Count - 1 do
+  begin
+    if lvPedagogue.Items[i].Checked then
+    begin
+      id_pedagogue := PedagogueList[i].ValueByName('ID_OUT');
+      if Kernel.SavePedagogueTrip([id_pedagogue, IDOrder]) then
+      begin
+        // ShowMessage('Сохранение выполнено!');
+      end
+      else
+        ShowMessage('Ошибка при сохранении!');
+    end;
+  end;
+  ShowTripingList(IDOrder);
+
+end;
+
+procedure TfPedagogueTrips.cmbOrdersChange(Sender: TObject);
+begin
+  IDOrder := OrdersTrip[cmbOrders.ItemIndex].ValueByName('ID_OUT');
+  ShowTripingList(IDOrder);
+end;
+
+procedure TfPedagogueTrips.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+  OrdersTrip := nil;
+  PedagogueList := nil;
+  TripingList := nil;
+end;
+
+procedure TfPedagogueTrips.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+  if Assigned(OrdersTrip) then
+    FreeAndNil(OrdersTrip);
+  if Assigned(PedagogueList) then
+    FreeAndNil(PedagogueList);
+  if Assigned(TripingList) then
+    FreeAndNil(TripingList);
+end;
+
+procedure TfPedagogueTrips.FormShow(Sender: TObject);
+begin
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', true);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+
+  if not Assigned(OrdersTrip) then
+    OrdersTrip := Kernel.GetOrdersTrip(IDAcademicYear);
+  Kernel.FillingComboBox(cmbOrders, OrdersTrip, 'LENGTH_NUMBER_DATE', false);
+  // убедиться, что не будет ошибки, если в кмб будет пустым, а я указываю первую строку..
+  cmbOrders.ItemIndex := 0;
+  if OrdersTrip.Count > 0 then
+    IDOrder := OrdersTrip[0].ValueByName('ID_OUT');
+
+  ShowPedagogueList;
+  ShowTripingList(IDOrder);
+end;
+
+procedure TfPedagogueTrips.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfPedagogueTrips.ShowPedagogueList;
+begin
+  if Assigned(PedagogueList) then
+    FreeAndNil(PedagogueList);
+  PedagogueList := Kernel.GetPedagogueSurnameNP;
+  // выбираю данные из энтой процедуры, аналогично списку класса педагога
+  Kernel.GetLVPedagogue(lvPedagogue, PedagogueList);
+  if lvPedagogue.Items.Count > 0 then
+  begin
+    lvPedagogue.ItemIndex := 0;
+    bToTrip.Enabled := true;
+  end
+  else
+    bToTrip.Enabled := false;
+end;
+
+procedure TfPedagogueTrips.ShowTripingList(const id_order: integer);
+begin
+  if Assigned(TripingList) then
+    FreeAndNil(TripingList);
+  TripingList := Kernel.GetPedagogueTrips(IDOrder);
+  // выбираю данные из энтой процедуры, аналогично списку класса педагога
+  Kernel.GetLVPedagogueTrips(lvTriping, TripingList);
+  if lvTriping.Items.Count > 0 then
+  begin
+    lvTriping.ItemIndex := 0;
+    bDeleteRecord.Enabled := true;
+  end
+  else
+    bDeleteRecord.Enabled := false;
+end;
+
+end.

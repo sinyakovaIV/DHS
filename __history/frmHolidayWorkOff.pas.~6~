@@ -1,0 +1,72 @@
+unit frmHolidayWorkOff;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, dbfunc, uKernel;
+
+type
+  TfHolidayWorkOff = class(TForm)
+    bClose: TButton;
+    Panel1: TPanel;
+    ListView1: TListView;
+    cmbAcademicYear: TComboBox;
+    Label1: TLabel;
+    bAdd: TButton;
+    bDelete: TButton;
+    dtpWirkOffDay: TDateTimePicker;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  private
+    AcademicYear: TResultTable;
+    FIDAcademicYear: integer;
+    procedure ShowWorkOffList;
+    procedure SetIDAcademicYear(const Value: integer);
+  public
+    property IDAcademicYear: integer read FIDAcademicYear
+      write SetIDAcademicYear;
+  end;
+
+var
+  fHolidayWorkOff: TfHolidayWorkOff;
+
+implementation
+
+{$R *.dfm}
+
+procedure TfHolidayWorkOff.FormCreate(Sender: TObject);
+begin
+  AcademicYear := nil;
+end;
+
+procedure TfHolidayWorkOff.FormDestroy(Sender: TObject);
+begin
+  if Assigned(AcademicYear) then
+    FreeAndNil(AcademicYear);
+end;
+
+procedure TfHolidayWorkOff.FormShow(Sender: TObject);
+begin
+  dtpWirkOffDay.Date := Date;
+  if not Assigned(AcademicYear) then
+    AcademicYear := Kernel.GetAcademicYear;
+  Kernel.FillingComboBox(cmbAcademicYear, AcademicYear, 'NAME', false);
+  Kernel.ChooseComboBoxItemIndex(cmbAcademicYear, AcademicYear, true, 'ID',
+    IDAcademicYear);
+end;
+
+procedure TfHolidayWorkOff.SetIDAcademicYear(const Value: integer);
+begin
+  if FIDAcademicYear <> Value then
+    FIDAcademicYear := Value;
+end;
+
+procedure TfHolidayWorkOff.ShowWorkOffList;
+begin
+
+end;
+
+end.

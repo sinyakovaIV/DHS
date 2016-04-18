@@ -1,0 +1,164 @@
+object fTimeSheetReport: TfTimeSheetReport
+  Left = 0
+  Top = 0
+  Caption = 'fTimeSheetReport'
+  ClientHeight = 580
+  ClientWidth = 969
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 13
+  object PageControl1: TPageControl
+    Left = 8
+    Top = 84
+    Width = 953
+    Height = 476
+    ActivePage = TabSheet1
+    TabOrder = 0
+    object TabSheet1: TTabSheet
+      Caption = 'TabSheet1'
+      ExplicitWidth = 819
+      ExplicitHeight = 333
+      DesignSize = (
+        945
+        448)
+      object lvDetailTimesheet: TListView
+        Left = 3
+        Top = 3
+        Width = 926
+        Height = 417
+        Anchors = [akLeft, akTop, akBottom]
+        Columns = <
+          item
+            Caption = #8470
+            Width = 40
+          end
+          item
+            Caption = #1044'/'#1085#1077#1076
+          end
+          item
+            Caption = #1042#1088#1077#1084#1103
+            Width = 90
+          end
+          item
+            Caption = #1043#1088#1091#1087#1087#1072'/'#1091#1095#1072#1097#1080#1081#1089#1103
+            Width = 240
+          end
+          item
+            Caption = #1059#1088#1086#1074'.'
+          end
+          item
+            Caption = #1055#1088#1086#1075#1088'.'
+            Width = 60
+          end
+          item
+            Caption = #1044#1077#1081#1089#1090#1074'. '#1089
+            Width = 80
+          end
+          item
+            Caption = #1044#1077#1081#1089#1090#1074'. '#1087#1086
+            Width = 80
+          end
+          item
+            Caption = #8470' '#1082#1072#1073'.'
+            Width = 55
+          end
+          item
+            Caption = #1050#1086#1085#1094#1077#1088#1090#1084#1077#1081#1089#1090#1077#1088
+            Width = 170
+          end
+          item
+            Caption = #1057#1090#1072#1090#1091#1089
+            Width = 0
+          end>
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        GridLines = True
+        ReadOnly = True
+        RowSelect = True
+        ParentFont = False
+        ShowWorkAreas = True
+        TabOrder = 0
+        ViewStyle = vsReport
+      end
+    end
+    object TabSheet2: TTabSheet
+      Caption = 'TabSheet2'
+      ImageIndex = 1
+      ExplicitWidth = 819
+      ExplicitHeight = 333
+    end
+  end
+  object GroupBox1: TGroupBox
+    Left = 8
+    Top = 8
+    Width = 490
+    Height = 70
+    Color = clBtnFace
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -13
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentColor = False
+    ParentFont = False
+    TabOrder = 1
+    object Label1: TLabel
+      Left = 215
+      Top = 12
+      Width = 79
+      Height = 16
+      Caption = #1059#1095#1077#1073#1085#1099#1081' '#1075#1086#1076':'
+    end
+    object Label3: TLabel
+      Left = 14
+      Top = 13
+      Width = 51
+      Height = 16
+      Caption = #1055#1077#1076#1072#1075#1086#1075':'
+    end
+    object Label5: TLabel
+      Left = 345
+      Top = 12
+      Width = 81
+      Height = 16
+      Caption = #1044#1077#1085#1100' '#1085#1077#1076#1077#1083#1080':'
+    end
+    object cmbAcademicYear: TComboBox
+      Left = 215
+      Top = 35
+      Width = 110
+      Height = 24
+      Style = csDropDownList
+      TabOrder = 1
+    end
+    object cmbPedagogue: TComboBox
+      Left = 14
+      Top = 35
+      Width = 179
+      Height = 24
+      Style = csDropDownList
+      TabOrder = 0
+    end
+    object cmbWeekday: TComboBox
+      Left = 345
+      Top = 34
+      Width = 130
+      Height = 24
+      Style = csDropDownList
+      TabOrder = 2
+      OnChange = cmbWeekdayChange
+    end
+  end
+end

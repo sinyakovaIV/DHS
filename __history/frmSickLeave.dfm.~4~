@@ -1,0 +1,118 @@
+object fSickLeave: TfSickLeave
+  Left = 0
+  Top = 0
+  Caption = #1041#1086#1083#1100#1085#1080#1095#1085#1099#1077' '#1083#1080#1089#1090#1099
+  ClientHeight = 423
+  ClientWidth = 610
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -15
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  DesignSize = (
+    610
+    423)
+  PixelsPerInch = 106
+  TextHeight = 18
+  object Label3: TLabel
+    Left = 8
+    Top = 62
+    Width = 59
+    Height = 18
+    Caption = #1055#1077#1076#1072#1075#1086#1075':'
+  end
+  object Label1: TLabel
+    Left = 218
+    Top = 62
+    Width = 91
+    Height = 18
+    Caption = #1059#1095#1077#1073#1085#1099#1081' '#1075#1086#1076':'
+  end
+  object Panel1: TPanel
+    Left = 8
+    Top = 8
+    Width = 521
+    Height = 41
+    BevelOuter = bvLowered
+    Caption = #1060#1048#1054' '#1087#1077#1076#1072#1075#1086#1075#1072', '#1091#1095#1077#1073#1085#1099#1081' '#1075#1086#1076
+    TabOrder = 0
+  end
+  object cmbPedagogue: TComboBox
+    Left = 8
+    Top = 86
+    Width = 183
+    Height = 26
+    Style = csDropDownList
+    TabOrder = 1
+  end
+  object cmbAcademicYear: TComboBox
+    Left = 218
+    Top = 86
+    Width = 117
+    Height = 26
+    Style = csDropDownList
+    Anchors = [akLeft, akTop, akBottom]
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 2
+  end
+  object ListView1: TListView
+    Left = 8
+    Top = 128
+    Width = 577
+    Height = 182
+    Columns = <>
+    TabOrder = 3
+  end
+  object dtpDateEvent: TDateTimePicker
+    Left = 31
+    Top = 359
+    Width = 123
+    Height = 26
+    Date = 42072.508098379630000000
+    Time = 42072.508098379630000000
+    TabOrder = 4
+  end
+  object DateTimePicker1: TDateTimePicker
+    Left = 212
+    Top = 359
+    Width = 123
+    Height = 26
+    Date = 42072.508098379630000000
+    Time = 42072.508098379630000000
+    TabOrder = 5
+  end
+  object Button1: TButton
+    Left = 368
+    Top = 360
+    Width = 75
+    Height = 25
+    Caption = 'Button1'
+    TabOrder = 6
+  end
+  object Button2: TButton
+    Left = 480
+    Top = 360
+    Width = 75
+    Height = 25
+    Caption = 'Button2'
+    TabOrder = 7
+  end
+  object Button3: TButton
+    Left = 488
+    Top = 368
+    Width = 75
+    Height = 25
+    Caption = 'Button2'
+    TabOrder = 8
+  end
+end
