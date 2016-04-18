@@ -200,6 +200,7 @@ type
     procedure GetLVIndividualJournal(const ListView: TListView;
       const RT: TResultTable);
     function UpdateJournal(const Args: array of Variant): Boolean;
+    function DeleteFromJournalOneRecord(const Args: array of Variant): Boolean;
 
     { Отчеты }
     // потом добавить REPORTING_DATE - входную дату отчета
@@ -366,6 +367,21 @@ begin
   try
     Result := ExecSQL(fIBConnect.Database, IBTrans,
       'delete from LST_TRIP_LEARNING_GHILD where ID = :1', Args);
+  finally
+    IBTrans.Free;
+  end;
+
+end;
+
+function TKernel.DeleteFromJournalOneRecord(
+  const Args: array of Variant): Boolean;
+var
+  IBTrans: TIBTransaction;
+begin
+  IBTrans := CreateIBTransaction;
+  try
+    Result := ExecSQL(fIBConnect.Database, IBTrans,
+      'delete from WT_JOURNAL_PEDAGOGUE ID = :1', Args);
   finally
     IBTrans.Free;
   end;
